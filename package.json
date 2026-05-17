@@ -1,0 +1,1 @@
+{"name":"batch","private":true,"version":"0.1.0","description":"Batch conditional commerce app","scripts":{"dev":"echo \"apps/web will own dev once scaffolded\"","check":"echo \"Add lint/typecheck after app scaffold\"","docs":"echo \"Read docs/ and AGENTS.md\""},"engines":{"node":">=20"},"packageManager":"pnpm@9.0.0"}
