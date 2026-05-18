@@ -16,7 +16,7 @@ enum BatchType { IMPORT_BATCH LOCAL_SUPPLY_BATCH MERCHANT_RESTOCK_BATCH COMMUNIT
 enum CommitmentStatus { PENDING_PAYMENT ACTIVE CANCELLED LOCKED ALLOCATED DELIVERED REFUNDED DISPUTED }
 enum PaymentStatus { NOT_STARTED INTENT_CREATED HELD CAPTURED FAILED REFUNDED }
 enum EscrowStatus { NOT_HELD HELD LOCKED PARTIALLY_RELEASED RELEASED REFUNDING REFUNDED }
-enum LedgerEntryType { BUYER_COMMITMENT_HOLD BUYER_COMMITMENT_CAPTURE PLATFORM_FEE SUPPLIER_MILESTONE_RELEASE LOGISTICS_PAYOUT REFUND SUPPLIER_BOND_HOLD SUPPLIER_BOND_RELEASE SUPPLIER_BOND_PENALTY }
+enum LedgerEntryType { BUYER_COMMITMENT_HOLD BUYER_COMMITMENT_CAPTURE PLATFORM_FEE SUPPLIER_MILESTONE_RELEASE LOGISTICS_PAYOUT REFUND SUPPLIER_BOND_HOLD SUPPLIER_BOND_RELEASE SUPPLIER_BOND_PENALTY SLOT_TRANSFER_HOLD SLOT_TRANSFER_SETTLEMENT SLOT_TRANSFER_FEE }
 enum LedgerStatus { PENDING POSTED FAILED REVERSED }
 enum MilestoneStatus { WAITING SUBMITTED APPROVED RELEASED REJECTED OVERDUE }
 enum ProofType { INVOICE PRODUCTION_PHOTO INSPECTION_REPORT WAREHOUSE_RECEIPT SHIPPING_DOCUMENT CUSTOMS_DOCUMENT DELIVERY_SCAN }
@@ -25,6 +25,11 @@ enum DisputeStatus { OPEN UNDER_REVIEW RESOLVED_BUYER RESOLVED_SUPPLIER ESCALATE
 enum MoneyMovementStatus { PENDING PROCESSING COMPLETED FAILED CANCELLED }
 enum PaymentProvider { MOCK CIRCLE ARC LOCAL_RAIL }
 enum IdempotencyStatus { PROCESSING COMPLETED FAILED EXPIRED }
+enum SlotStatus { ACTIVE LISTED RESERVED TRANSFERRING TRANSFERRED CANCELLED LOCKED DELIVERED REFUNDED DISPUTED }
+enum SlotListingStatus { OPEN RESERVED CANCELLED EXPIRED COMPLETED LOCKED }
+enum SlotOrderStatus { OPEN FILLED PARTIALLY_FILLED CANCELLED EXPIRED REJECTED }
+enum SlotTransferStatus { PENDING_FUNDS HELD COMPLETED CANCELLED FAILED DISPUTED }
+enum DeliverySnapshotStatus { ACTIVE REPLACED LOCKED }
 
 model User {
   id        String @id @default(cuid())
@@ -41,6 +46,11 @@ model User {
   disputes Dispute[]
   auditEvents AuditEvent[]
   profiles Profile[]
+  deliveryProfiles DeliveryProfile[]
+  deliverySnapshots DeliverySnapshot[]
+  batchSlots BatchSlot[]
+  slotListings BatchSlotListing[]
+  slotOrders BatchSlotOrder[]
   sentTransfers BatchSlotTransfer[] @relation("SlotTransferFrom")
   receivedTransfers BatchSlotTransfer[] @relation("SlotTransferTo")
 }
@@ -59,6 +69,55 @@ model Profile {
   updatedAt DateTime @updatedAt
   user User @relation(fields: [userId], references: [id])
   @@index([userId])
+}
+
+model DeliveryProfile {
+  id String @id @default(cuid())
+  userId String
+  label String
+  recipientName String
+  phone String
+  country String
+  city String
+  addressLine1 String?
+  addressLine2 String?
+  postalCode String?
+  hubCode String?
+  deliveryMode String
+  isDefault Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+  snapshots DeliverySnapshot[]
+  @@index([userId, isDefault])
+}
+
+model DeliverySnapshot {
+  id String @id @default(cuid())
+  userId String
+  deliveryProfileId String?
+  commitmentId String?
+  slotId String?
+  label String
+  recipientName String
+  phone String
+  country String
+  city String
+  addressLine1 String?
+  addressLine2 String?
+  postalCode String?
+  hubCode String?
+  deliveryMode String
+  status DeliverySnapshotStatus @default(ACTIVE)
+  lockedAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  deliveryProfile DeliveryProfile? @relation(fields: [deliveryProfileId], references: [id])
+  commitment Commitment? @relation(fields: [commitmentId], references: [id])
+  slot BatchSlot? @relation(fields: [slotId], references: [id])
+  @@index([userId, status])
+  @@index([commitmentId])
+  @@index([slotId])
 }
 
 model Supplier {
@@ -100,6 +159,7 @@ model Batch {
   supplierConfirmationDueAt DateTime?
   estimatedDeliveryStart DateTime?
   estimatedDeliveryEnd DateTime?
+  deliveryLockAt DateTime?
   riskLevel RiskLevel @default(MEDIUM)
   deliveryMode String
   supplierConfirmed Boolean @default(false)
@@ -109,6 +169,7 @@ model Batch {
   supplier Supplier @relation(fields: [supplierId], references: [id])
   tiers BatchTier[]
   commitments Commitment[]
+  slots BatchSlot[]
   allocations OrderAllocation[]
   ledgerEntries EscrowLedgerEntry[]
   milestones Milestone[]
@@ -116,6 +177,8 @@ model Batch {
   disputes Dispute[]
   refunds Refund[]
   payouts Payout[]
+  slotListings BatchSlotListing[]
+  slotOrders BatchSlotOrder[]
   slotTransfers BatchSlotTransfer[]
   @@index([status, deadlineAt])
   @@index([supplierId, status])
@@ -149,11 +212,83 @@ model Commitment {
   updatedAt DateTime @updatedAt
   batch Batch @relation(fields: [batchId], references: [id])
   buyer User @relation(fields: [buyerId], references: [id])
+  slots BatchSlot[]
+  deliverySnapshots DeliverySnapshot[]
   allocations OrderAllocation[]
   ledgerEntries EscrowLedgerEntry[]
   disputes Dispute[]
   refunds Refund[]
   slotTransfers BatchSlotTransfer[]
+  @@index([buyerId, status])
+  @@index([batchId, status])
+}
+
+model BatchSlot {
+  id String @id @default(cuid())
+  batchId String
+  commitmentId String
+  ownerId String
+  quantity Int
+  entryUnitPrice Decimal @db.Decimal(18, 2)
+  entryTotalAmount Decimal @db.Decimal(18, 2)
+  currency String
+  status SlotStatus @default(ACTIVE)
+  transferLockedAt DateTime?
+  deliveryLockedAt DateTime?
+  metadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch Batch @relation(fields: [batchId], references: [id])
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+  owner User @relation(fields: [ownerId], references: [id])
+  deliverySnapshots DeliverySnapshot[]
+  listings BatchSlotListing[]
+  transfers BatchSlotTransfer[]
+  @@index([ownerId, status])
+  @@index([batchId, status])
+  @@index([commitmentId])
+}
+
+model BatchSlotListing {
+  id String @id @default(cuid())
+  batchId String
+  slotId String
+  sellerId String
+  quantity Int
+  askUnitPrice Decimal @db.Decimal(18, 2)
+  askTotalAmount Decimal @db.Decimal(18, 2)
+  currency String
+  status SlotListingStatus @default(OPEN)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch Batch @relation(fields: [batchId], references: [id])
+  slot BatchSlot @relation(fields: [slotId], references: [id])
+  seller User @relation(fields: [sellerId], references: [id])
+  orders BatchSlotOrder[]
+  transfers BatchSlotTransfer[]
+  @@index([batchId, status])
+  @@index([sellerId, status])
+}
+
+model BatchSlotOrder {
+  id String @id @default(cuid())
+  batchId String
+  listingId String?
+  buyerId String
+  side String
+  orderType String
+  quantity Int
+  limitUnitPrice Decimal? @db.Decimal(18, 2)
+  status SlotOrderStatus @default(OPEN)
+  expiresAt DateTime?
+  cancelledAt DateTime?
+  cancellationReason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch Batch @relation(fields: [batchId], references: [id])
+  listing BatchSlotListing? @relation(fields: [listingId], references: [id])
+  buyer User @relation(fields: [buyerId], references: [id])
   @@index([buyerId, status])
   @@index([batchId, status])
 }
@@ -304,15 +439,24 @@ model BatchSlotTransfer {
   fromBuyerId String
   toBuyerId String?
   commitmentId String
+  slotId String?
+  listingId String?
   quantity Int
   transferAmount Decimal @db.Decimal(18, 2)
-  status MoneyMovementStatus @default(PENDING)
+  feeAmount Decimal @default(0) @db.Decimal(18, 2)
+  currency String @default("USD")
+  status SlotTransferStatus @default(PENDING_FUNDS)
   createdAt DateTime @default(now())
   completedAt DateTime?
   batch Batch @relation(fields: [batchId], references: [id])
   commitment Commitment @relation(fields: [commitmentId], references: [id])
+  slot BatchSlot? @relation(fields: [slotId], references: [id])
+  listing BatchSlotListing? @relation(fields: [listingId], references: [id])
   fromBuyer User @relation("SlotTransferFrom", fields: [fromBuyerId], references: [id])
   toBuyer User? @relation("SlotTransferTo", fields: [toBuyerId], references: [id])
+  @@index([batchId, status])
+  @@index([fromBuyerId, status])
+  @@index([toBuyerId, status])
 }
 
 model PaymentEvent {
