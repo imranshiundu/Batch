@@ -33,9 +33,22 @@ export const apiRoutes = {
   developerApiMap: "/api/developers/api-map",
   developerApiKeys: "/api/developers/api-keys",
   developerApiKeyRevoke: (keyId: string) => `/api/developers/api-keys/${keyId}/revoke`,
+  supplierProfile: "/api/supplier/profile",
+  supplierBatches: "/api/supplier/batches",
+  supplierProofs: "/api/supplier/proofs",
+  proofUploads: "/api/uploads/proofs",
+  operatorOverview: "/api/operator/overview",
+  operatorEscrow: "/api/operator/escrow",
+  operatorDisputes: "/api/operator/disputes",
+  operatorBatchTransition: (slug: string) => `/api/operator/batches/${slug}/transition`,
+  operatorApproveMilestonePayout: (milestoneId: string) => `/api/operator/milestones/${milestoneId}/approve-payout`,
+  operatorRefundCommitment: (commitmentId: string) => `/api/operator/commitments/${commitmentId}/refund`,
+  operatorAllocateDeliveries: (slug: string) => `/api/operator/batches/${slug}/allocate-deliveries`,
+  operatorLockDelivery: (slug: string) => `/api/operator/batches/${slug}/lock-delivery`,
   operatorLedgerAccounts: (slug: string) => `/api/operator/batches/${slug}/ledger-accounts`,
   operatorLedgerPostings: (slug: string) => `/api/operator/batches/${slug}/ledger-postings`,
   operatorLedgerReconciliation: (slug: string) => `/api/operator/batches/${slug}/ledger-postings?view=reconcile`,
+  paymentWebhook: (provider: string) => `/api/payments/webhooks/${provider}`,
 };
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
@@ -45,6 +58,21 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<ApiEn
       accept: "application/json",
       ...(init?.headers ?? {}),
     },
+  });
+
+  return response.json();
+}
+
+export async function apiPatch<T>(path: string, body: unknown, init?: RequestInit): Promise<ApiEnvelope<T>> {
+  const response = await fetch(path, {
+    method: "PATCH",
+    ...init,
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    body: JSON.stringify(body),
   });
 
   return response.json();
@@ -72,6 +100,10 @@ function idempotencyHeaders(idempotencyKey: string, role = "BUYER") {
   };
 }
 
+function roleHeaders(role: string) {
+  return { "x-batch-demo-role": role };
+}
+
 export const batchApi = {
   health: () => apiGet(apiRoutes.health),
   listBatches: () => apiGet(apiRoutes.batches),
@@ -82,8 +114,8 @@ export const batchApi = {
   placeMarketOrder: (body: unknown, idempotencyKey: string, role = "BUYER") => apiPost(apiRoutes.marketOrders, body, {
     headers: idempotencyHeaders(idempotencyKey, role),
   }),
-  listSlots: () => apiGet(apiRoutes.slots, { headers: { "x-batch-demo-role": "BUYER" } }),
-  listSlotOrders: () => apiGet(apiRoutes.slotOrders, { headers: { "x-batch-demo-role": "BUYER" } }),
+  listSlots: () => apiGet(apiRoutes.slots, { headers: roleHeaders("BUYER") }),
+  listSlotOrders: () => apiGet(apiRoutes.slotOrders, { headers: roleHeaders("BUYER") }),
   createSlotOrder: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.slotOrders, body, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
@@ -105,21 +137,57 @@ export const batchApi = {
   cancelSlotOrder: (orderId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.slotOrderCancel(orderId), body, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
-  getSlotPnl: () => apiGet(apiRoutes.slotPnl, { headers: { "x-batch-demo-role": "BUYER" } }),
-  listDeliveryProfiles: () => apiGet(apiRoutes.deliveryProfiles, { headers: { "x-batch-demo-role": "BUYER" } }),
-  listDeveloperApiKeys: () => apiGet(apiRoutes.developerApiKeys, { headers: { "x-batch-demo-role": "BUYER" } }),
+  getSlotPnl: () => apiGet(apiRoutes.slotPnl, { headers: roleHeaders("BUYER") }),
+  listDeliveryProfiles: () => apiGet(apiRoutes.deliveryProfiles, { headers: roleHeaders("BUYER") }),
+  createDeliveryProfile: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.deliveryProfiles, body, {
+    headers: idempotencyHeaders(idempotencyKey),
+  }),
+  listDeveloperApiKeys: () => apiGet(apiRoutes.developerApiKeys, { headers: roleHeaders("BUYER") }),
   createDeveloperApiKey: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.developerApiKeys, body, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
   revokeDeveloperApiKey: (keyId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.developerApiKeyRevoke(keyId), body, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
-  listLedgerAccounts: (slug: string) => apiGet(apiRoutes.operatorLedgerAccounts(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
+  getSupplierProfile: () => apiGet(apiRoutes.supplierProfile, { headers: roleHeaders("SUPPLIER") }),
+  updateSupplierProfile: (body: unknown) => apiPatch(apiRoutes.supplierProfile, body, { headers: roleHeaders("SUPPLIER") }),
+  listSupplierBatches: () => apiGet(apiRoutes.supplierBatches, { headers: roleHeaders("SUPPLIER") }),
+  createSupplierBatch: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.supplierBatches, body, {
+    headers: idempotencyHeaders(idempotencyKey, "SUPPLIER"),
+  }),
+  submitSupplierProof: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.supplierProofs, body, {
+    headers: idempotencyHeaders(idempotencyKey, "SUPPLIER"),
+  }),
+  createProofUpload: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.proofUploads, body, {
+    headers: idempotencyHeaders(idempotencyKey, "SUPPLIER"),
+  }),
+  getOperatorOverview: () => apiGet(apiRoutes.operatorOverview, { headers: roleHeaders("OPERATOR") }),
+  getOperatorEscrow: () => apiGet(apiRoutes.operatorEscrow, { headers: roleHeaders("OPERATOR") }),
+  listOperatorDisputes: () => apiGet(apiRoutes.operatorDisputes, { headers: roleHeaders("OPERATOR") }),
+  openDispute: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorDisputes, body, {
+    headers: idempotencyHeaders(idempotencyKey),
+  }),
+  transitionBatch: (slug: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorBatchTransition(slug), body, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  approveMilestonePayout: (milestoneId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorApproveMilestonePayout(milestoneId), body, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  refundCommitment: (commitmentId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorRefundCommitment(commitmentId), body, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  allocateDeliveries: (slug: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorAllocateDeliveries(slug), body, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  lockDelivery: (slug: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorLockDelivery(slug), body, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  listLedgerAccounts: (slug: string) => apiGet(apiRoutes.operatorLedgerAccounts(slug), { headers: roleHeaders("OPERATOR") }),
   provisionLedgerAccounts: (slug: string, idempotencyKey: string) => apiPost(apiRoutes.operatorLedgerAccounts(slug), {}, {
     headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
   }),
-  listLedgerPostings: (slug: string) => apiGet(apiRoutes.operatorLedgerPostings(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
-  reconcileLedger: (slug: string) => apiGet(apiRoutes.operatorLedgerReconciliation(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
+  listLedgerPostings: (slug: string) => apiGet(apiRoutes.operatorLedgerPostings(slug), { headers: roleHeaders("OPERATOR") }),
+  reconcileLedger: (slug: string) => apiGet(apiRoutes.operatorLedgerReconciliation(slug), { headers: roleHeaders("OPERATOR") }),
   postLedgerEntry: (slug: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorLedgerPostings(slug), body, {
     headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
   }),
