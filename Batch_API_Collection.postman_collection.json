@@ -1,0 +1,325 @@
+{
+  "info": {
+    "name": "Batch Platform API",
+    "description": "API collection for the Batch Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/health", "host": ["{{baseUrl}}"], "path": ["api", "health"] }
+          }
+        },
+        {
+          "name": "List Public Batches",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/public/batches", "host": ["{{baseUrl}}"], "path": ["api", "public", "batches"] }
+          }
+        },
+        {
+          "name": "Get Batch Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/public/batches/shenzhen-charger-restock", "host": ["{{baseUrl}}"], "path": ["api", "public", "batches", "shenzhen-charger-restock"] }
+          }
+        },
+        {
+          "name": "Get Bot Manifest",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/developers/bot-manifest", "host": ["{{baseUrl}}"], "path": ["api", "developers", "bot-manifest"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Market",
+      "item": [
+        {
+          "name": "List Market Instruments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/market/instruments", "host": ["{{baseUrl}}"], "path": ["api", "market", "instruments"] }
+          }
+        },
+        {
+          "name": "Get Instrument Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/market/instruments/shenzhen-charger-restock", "host": ["{{baseUrl}}"], "path": ["api", "market", "instruments", "shenzhen-charger-restock"] }
+          }
+        },
+        {
+          "name": "Get Instrument Depth",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/market/instruments/shenzhen-charger-restock/depth", "host": ["{{baseUrl}}"], "path": ["api", "market", "instruments", "shenzhen-charger-restock", "depth"] }
+          }
+        },
+        {
+          "name": "Place Market Order",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instrumentId\": \"shenzhen-charger-restock\",\n  \"side\": \"BUY\",\n  \"quantity\": 50,\n  \"price\": 4.5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/market/orders", "host": ["{{baseUrl}}"], "path": ["api", "market", "orders"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth & Profile",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api", "profile"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"John Doe\",\n  \"notificationsEnabled\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile", "host": ["{{baseUrl}}"], "path": ["api", "profile"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Buyer",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/buyer/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "buyer", "dashboard"] }
+          }
+        },
+        {
+          "name": "List Commitments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/buyer/commitments", "host": ["{{baseUrl}}"], "path": ["api", "buyer", "commitments"] }
+          }
+        },
+        {
+          "name": "Create Commitment",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"shenzhen-charger-restock\",\n  \"units\": 10,\n  \"paymentMethod\": \"arc_pay\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/buyer/commitments", "host": ["{{baseUrl}}"], "path": ["api", "buyer", "commitments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Supplier",
+      "item": [
+        {
+          "name": "Get Supplier Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/supplier/profile", "host": ["{{baseUrl}}"], "path": ["api", "supplier", "profile"] }
+          }
+        },
+        {
+          "name": "Update Supplier Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessName\": \"Shenzhen Wholesale Ltd\",\n  \"country\": \"CN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/supplier/profile", "host": ["{{baseUrl}}"], "path": ["api", "supplier", "profile"] }
+          }
+        },
+        {
+          "name": "List Supplier Batches",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/supplier/batches", "host": ["{{baseUrl}}"], "path": ["api", "supplier", "batches"] }
+          }
+        },
+        {
+          "name": "Create Batch",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Import Batch\",\n  \"type\": \"IMPORT_BATCH\",\n  \"targetUnits\": 1000,\n  \"minimumUnits\": 500,\n  \"normalPrice\": 10,\n  \"batchPrice\": 5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/supplier/batches", "host": ["{{baseUrl}}"], "path": ["api", "supplier", "batches"] }
+          }
+        },
+        {
+          "name": "Submit Milestone Proof",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"shenzhen-charger-restock\",\n  \"milestoneId\": \"production_ready\",\n  \"proofUrl\": \"https://example.com/proof.pdf\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/supplier/proofs", "host": ["{{baseUrl}}"], "path": ["api", "supplier", "proofs"] }
+          }
+        },
+        {
+          "name": "Upload Proof Document",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "multipart/form-data" } ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/api/uploads/proofs", "host": ["{{baseUrl}}"], "path": ["api", "uploads", "proofs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operator",
+      "item": [
+        {
+          "name": "Get Operator Overview",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/operator/overview", "host": ["{{baseUrl}}"], "path": ["api", "operator", "overview"] }
+          }
+        },
+        {
+          "name": "Get Escrow Ledger",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/operator/escrow", "host": ["{{baseUrl}}"], "path": ["api", "operator", "escrow"] }
+          }
+        },
+        {
+          "name": "List Disputes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/operator/disputes", "host": ["{{baseUrl}}"], "path": ["api", "operator", "disputes"] }
+          }
+        },
+        {
+          "name": "Open/Update Dispute",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"school-uniform-batch\",\n  \"reason\": \"Quality issue reported\",\n  \"action\": \"HOLD_FUNDS\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/operator/disputes", "host": ["{{baseUrl}}"], "path": ["api", "operator", "disputes"] }
+          }
+        },
+        {
+          "name": "Transition Batch State",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toStatus\": \"FUNDED\",\n  \"reason\": \"Minimum threshold reached\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/operator/batches/shenzhen-charger-restock/transition", "host": ["{{baseUrl}}"], "path": ["api", "operator", "batches", "shenzhen-charger-restock", "transition"] }
+          }
+        },
+        {
+          "name": "Allocate Deliveries",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courier\": \"demo_logistics\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/operator/batches/shenzhen-charger-restock/allocate-deliveries", "host": ["{{baseUrl}}"], "path": ["api", "operator", "batches", "shenzhen-charger-restock", "allocate-deliveries"] }
+          }
+        },
+        {
+          "name": "Issue Refund",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Batch cancelled due to supplier failure\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/operator/commitments/cmt_123456/refund", "host": ["{{baseUrl}}"], "path": ["api", "operator", "commitments", "cmt_123456", "refund"] }
+          }
+        },
+        {
+          "name": "Approve Milestone Payout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/operator/milestones/ms_001/approve-payout", "host": ["{{baseUrl}}"], "path": ["api", "operator", "milestones", "ms_001", "approve-payout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Payment Webhook Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment_success\",\n  \"payload\": {\n    \"paymentId\": \"pi_1234\",\n    \"status\": \"completed\"\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/payments/webhooks/circle", "host": ["{{baseUrl}}"], "path": ["api", "payments", "webhooks", "circle"] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

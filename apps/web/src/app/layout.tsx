@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter", 
+});
+const jetbrainsMono = JetBrains_Mono({ 
+  subsets: ["latin"],
+  variable: "--font-mono", 
+});
 
 export const metadata: Metadata = {
-  title: "Batch — Buy together. Pay only when the deal clears.",
+  title: "Batch — Escrow & Market Terminal",
   description:
     "Batch is a conditional commerce app for live group deals, escrow commitments, supplier milestones, and buyer allocations.",
 };
@@ -13,7 +20,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-canvas text-ink-primary antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
