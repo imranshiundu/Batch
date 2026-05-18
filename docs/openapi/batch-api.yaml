@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Batch API
-  version: 0.2.0
-  description: API surface for Batch commitments, slots, delivery profiles, bot API keys, and bot market access.
+  version: 0.3.0
+  description: API surface for Batch commitments, slots, segregated ledger accounts, delivery profiles, bot API keys, and bot market access.
 servers:
   - url: /api
 security:
@@ -22,19 +22,6 @@ paths:
       summary: Create developer bot API key
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, scopes]
-              properties:
-                name: { type: string }
-                scopes:
-                  type: array
-                  items: { type: string }
-                expiresAt: { type: string, format: date-time }
       responses:
         '201': { description: API key created and raw secret returned once }
   /developers/api-keys/{keyId}/revoke:
@@ -46,13 +33,6 @@ paths:
           in: path
           required: true
           schema: { type: string }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason: { type: string }
       responses:
         '200': { description: API key revoked }
   /market/instruments:
@@ -100,17 +80,6 @@ paths:
       summary: Create buyer commitment and database-backed Batch Slot
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [batchId, quantity]
-              properties:
-                batchId: { type: string }
-                quantity: { type: integer, minimum: 1 }
-                deliveryProfileId: { type: string }
       responses:
         '201': { description: Commitment created }
   /profile/delivery:
@@ -142,18 +111,6 @@ paths:
         - BotKey: [slots:listings:create]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [slotId, quantity, askUnitPrice]
-              properties:
-                slotId: { type: string }
-                quantity: { type: integer, minimum: 1 }
-                askUnitPrice: { type: number, minimum: 0 }
-                expiresAt: { type: string, format: date-time }
       responses:
         '201': { description: Listing created }
   /slots/listings/{listingId}/purchase:
@@ -170,6 +127,12 @@ paths:
       responses:
         '201': { description: Slot purchase recorded internally }
   /slots/orders:
+    get:
+      summary: List slot buy orders
+      security:
+        - BotKey: [orders:create]
+      responses:
+        '200': { description: Slot orders returned }
     post:
       summary: Create slot buy order
       security:
@@ -178,6 +141,19 @@ paths:
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '201': { description: Slot order created }
+  /slots/orders/{orderId}/reserve:
+    post:
+      summary: Reserve a matched slot order
+      security:
+        - BotKey: [orders:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Slot order reserved }
   /slots/orders/{orderId}/cancel:
     post:
       summary: Cancel an open slot order
@@ -191,6 +167,32 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Order cancelled }
+  /slots/transfers/{transferId}/hold:
+    post:
+      summary: Mark slot transfer payment hold posted
+      security:
+        - BotKey: [orders:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: transferId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Slot transfer hold posted }
+  /slots/transfers/{transferId}/complete:
+    post:
+      summary: Complete held slot transfer
+      security:
+        - BotKey: [orders:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: transferId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Slot transfer completed }
   /slots/pnl:
     get:
       summary: Read slot P/L
@@ -198,6 +200,26 @@ paths:
         - BotKey: [slots:pnl:read]
       responses:
         '200': { description: P/L returned }
+  /operator/batches/{slug}/ledger-accounts:
+    get:
+      summary: List segregated ledger accounts for a batch
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Ledger accounts returned }
+    post:
+      summary: Provision default segregated ledger accounts for a batch
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Ledger accounts provisioned }
   /operator/batches/{slug}/lock-delivery:
     post:
       summary: Lock delivery and stop normal slot transfer
