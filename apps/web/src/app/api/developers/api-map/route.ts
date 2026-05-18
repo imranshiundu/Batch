@@ -21,8 +21,17 @@ export function GET() {
       "POST /api/profile/delivery",
       "GET /api/slots",
       "POST /api/slots/listings",
+      "POST /api/slots/listings/:listingId/purchase",
+      "GET /api/slots/orders",
+      "POST /api/slots/orders",
+      "POST /api/slots/orders/:orderId/reserve",
       "POST /api/slots/orders/:orderId/cancel",
       "GET /api/slots/pnl",
+    ],
+    developer: [
+      "GET /api/developers/api-keys",
+      "POST /api/developers/api-keys",
+      "POST /api/developers/api-keys/:keyId/revoke",
     ],
     supplier: [
       "GET /api/supplier/profile",
@@ -41,6 +50,7 @@ export function GET() {
       "POST /api/operator/milestones/:milestoneId/approve-payout",
       "POST /api/operator/commitments/:commitmentId/refund",
       "POST /api/operator/batches/:slug/allocate-deliveries",
+      "POST /api/operator/batches/:slug/lock-delivery",
     ],
     payments: [
       "POST /api/payments/webhooks/:provider",
