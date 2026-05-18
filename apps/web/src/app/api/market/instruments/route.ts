@@ -2,8 +2,8 @@ import { ok } from "@/lib/api-response";
 import { listBatchInstruments } from "@/lib/market/market-service";
 import { requireBotScope } from "@/lib/security/bot-access";
 
-export function GET(request: Request) {
-  const botForbidden = requireBotScope(request, "market:read");
+export async function GET(request: Request) {
+  const botForbidden = await requireBotScope(request, "market:read");
   if (botForbidden) return botForbidden;
 
   const instruments = listBatchInstruments();
