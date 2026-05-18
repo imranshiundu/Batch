@@ -1,14 +1,31 @@
-import { fail, ok } from "@/lib/api-response";
+import { ok } from "@/lib/api-response";
 import { demoDisputes } from "@/lib/api-demo-store";
+import { getRequestUser, requireRole } from "@/lib/security/auth";
+import { createAuditDraft } from "@/lib/security/audit";
+import { requireIdempotencyKey } from "@/lib/security/idempotency";
+import { disputeSchema, parseJson } from "@/lib/security/validation";
 
-export function GET() {
-  return ok(demoDisputes, { source: "seeded-demo" });
+export function GET(request: Request) {
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["OPERATOR", "ADMIN"]);
+  if (forbidden) return forbidden;
+  return ok(demoDisputes, { source: "seeded-demo", actor: user.id });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body.batchId !== "string" || typeof body.reason !== "string") {
-    return fail({ code: "INVALID_DISPUTE", message: "batchId and reason are required." }, 400);
-  }
-  return ok({ id: `dispute_${Date.now()}`, status: "OPEN", ...body }, { persisted: false }, 201);
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["BUYER", "OPERATOR", "ADMIN"]);
+  if (forbidden) return forbidden;
+
+  const idempotency = requireIdempotencyKey(request);
+  if (!idempotency.ok) return idempotency.response;
+
+  const parsed = await parseJson(request, disputeSchema);
+  if (!parsed.ok) return parsed.response;
+
+  const dispute = { id: `dispute_${Date.now()}`, status: "OPEN", buyerId: user.id, ...parsed.data };
+  return ok({
+    ...dispute,
+    audit: createAuditDraft({ actorId: user.id, actorRole: user.role, action: "DISPUTE_OPEN", targetType: "BATCH", targetId: parsed.data.batchId, after: dispute }),
+  }, { persisted: false, idempotencyKey: idempotency.key }, 201);
 }
