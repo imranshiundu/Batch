@@ -7,8 +7,9 @@ export function generateStaticParams() {
   return batches.map((batch) => ({ batchId: batch.slug }));
 }
 
-export default function CommitFlowPage({ params }: { params: { batchId: string } }) {
-  const batch = batches.find((item) => item.slug === params.batchId);
+export default async function CommitFlowPage({ params }: { params: Promise<{ batchId: string }> }) {
+  const { batchId } = await params;
+  const batch = batches.find((item) => item.slug === batchId);
 
   if (!batch) notFound();
 
