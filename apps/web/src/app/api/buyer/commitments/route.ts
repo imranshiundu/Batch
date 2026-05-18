@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       buyerId: user.id,
       batchSlug: parsed.data.batchId,
       quantity: parsed.data.quantity,
+      deliveryProfileId: parsed.data.deliveryProfileId,
     });
 
     if (!persistent.ok) return fail(persistent.error, 400);
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
 
   return ok({
     ...result.data,
+    deliveryProfileId: parsed.data.deliveryProfileId ?? null,
     audit: createAuditDraft({ actorId: user.id, actorRole: user.role, action: "COMMITMENT_CREATE", targetType: "BATCH", targetId: batch.slug, after: result.data }),
   }, { mode: "mock-payment", idempotencyKey: idempotency.key }, 201);
 }

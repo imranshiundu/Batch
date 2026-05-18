@@ -22,6 +22,7 @@ export async function parseJson<T>(request: Request, schema: ZodSchema<T>) {
 export const createCommitmentSchema = z.object({
   batchId: z.string().min(1),
   quantity: z.number().int().positive().max(100000),
+  deliveryProfileId: z.string().min(1).optional(),
 });
 
 export const profilePatchSchema = z.object({
