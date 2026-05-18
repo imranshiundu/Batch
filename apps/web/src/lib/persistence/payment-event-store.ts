@@ -6,11 +6,17 @@ export async function persistPaymentEvent(input: {
   externalId: string;
   payload: unknown;
 }) {
-  return prisma.paymentEvent.upsert({
+  const existing = await prisma.paymentEvent.findUnique({ where: { externalId: input.externalId } });
+
+  if (existing?.processedAt) {
+    return { event: existing, replayed: true, alreadyProcessed: true };
+  }
+
+  const event = await prisma.paymentEvent.upsert({
     where: { externalId: input.externalId },
     update: {
       payload: input.payload as object,
-      status: "RECEIVED",
+      status: existing ? "REPLAYED" : "RECEIVED",
     },
     create: {
       provider: input.provider,
@@ -18,6 +24,15 @@ export async function persistPaymentEvent(input: {
       externalId: input.externalId,
       payload: input.payload as object,
     },
+  });
+
+  return { event, replayed: Boolean(existing), alreadyProcessed: false };
+}
+
+export async function markPaymentEventProcessed(externalId: string) {
+  return prisma.paymentEvent.update({
+    where: { externalId },
+    data: { status: "PROCESSED", processedAt: new Date() },
   });
 }
 
