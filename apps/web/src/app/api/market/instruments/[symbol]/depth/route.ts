@@ -1,7 +1,11 @@
 import { fail, ok } from "@/lib/api-response";
 import { getBatchDepth } from "@/lib/market/market-service";
+import { requireBotScope } from "@/lib/security/bot-access";
 
 export async function GET(request: Request, context: { params: Promise<{ symbol: string }> }) {
+  const botForbidden = requireBotScope(request, "market:depth:read");
+  if (botForbidden) return botForbidden;
+
   const { symbol } = await context.params;
   const depth = getBatchDepth(symbol);
   if (!depth) return fail({ code: "INSTRUMENT_NOT_FOUND", message: "Batch instrument depth was not found." }, 404);
