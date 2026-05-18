@@ -9,12 +9,13 @@ export async function createPersistentCommitment(input: {
   buyerId: string;
   batchSlug: string;
   quantity: number;
+  deliveryProfileId?: string;
 }) {
   const idempotency = await beginIdempotentOperation({
     key: input.idempotencyKey,
     actorId: input.buyerId,
     route: "POST /api/buyer/commitments",
-    requestBody: { batchSlug: input.batchSlug, quantity: input.quantity },
+    requestBody: { batchSlug: input.batchSlug, quantity: input.quantity, deliveryProfileId: input.deliveryProfileId },
   });
 
   if (!idempotency.ok) {
@@ -32,14 +33,10 @@ export async function createPersistentCommitment(input: {
         include: { tiers: { orderBy: { minUnits: "asc" } } },
       });
 
-      if (!batch) {
-        throw new Error("BATCH_NOT_FOUND");
-      }
+      if (!batch) throw new Error("BATCH_NOT_FOUND");
 
       const tier = [...batch.tiers].reverse().find((item) => input.quantity >= item.minUnits) ?? batch.tiers[0];
-      if (!tier) {
-        throw new Error("BATCH_TIER_REQUIRED");
-      }
+      if (!tier) throw new Error("BATCH_TIER_REQUIRED");
 
       const quote = quoteCommitment({
         id: batch.slug,
@@ -63,9 +60,7 @@ export async function createPersistentCommitment(input: {
         now: new Date(),
       });
 
-      if (!quote.ok) {
-        throw new Error(quote.error.code);
-      }
+      if (!quote.ok) throw new Error(quote.error.code);
 
       const commitment = await tx.commitment.create({
         data: {
@@ -81,6 +76,42 @@ export async function createPersistentCommitment(input: {
         },
       });
 
+      const slot = await tx.batchSlot.create({
+        data: {
+          batchId: batch.id,
+          commitmentId: commitment.id,
+          ownerId: input.buyerId,
+          quantity: input.quantity,
+          entryUnitPrice: quote.data.unitPrice,
+          entryTotalAmount: quote.data.totalAmount,
+          currency: quote.data.currency,
+          status: "ACTIVE",
+        },
+      });
+
+      const deliveryProfile = await tx.deliveryProfile.findFirst({
+        where: input.deliveryProfileId ? { id: input.deliveryProfileId, userId: input.buyerId } : { userId: input.buyerId, isDefault: true },
+      });
+
+      const deliverySnapshot = deliveryProfile ? await tx.deliverySnapshot.create({
+        data: {
+          userId: input.buyerId,
+          deliveryProfileId: deliveryProfile.id,
+          commitmentId: commitment.id,
+          slotId: slot.id,
+          label: deliveryProfile.label,
+          recipientName: deliveryProfile.recipientName,
+          phone: deliveryProfile.phone,
+          country: deliveryProfile.country,
+          city: deliveryProfile.city,
+          addressLine1: deliveryProfile.addressLine1,
+          addressLine2: deliveryProfile.addressLine2,
+          postalCode: deliveryProfile.postalCode,
+          hubCode: deliveryProfile.hubCode,
+          deliveryMode: deliveryProfile.deliveryMode,
+        },
+      }) : null;
+
       const ledgerDraft = buyerCommitmentHold({
         batchId: batch.id,
         commitmentId: commitment.id,
@@ -90,14 +121,9 @@ export async function createPersistentCommitment(input: {
         idempotencyKey: `${input.idempotencyKey}:ledger`,
       });
 
-      if (!ledgerDraft.ok) {
-        throw new Error(ledgerDraft.error.code);
-      }
+      if (!ledgerDraft.ok) throw new Error(ledgerDraft.error.code);
 
-      const ledger = await tx.escrowLedgerEntry.create({
-        data: ledgerDraft.data,
-      });
-
+      const ledger = await tx.escrowLedgerEntry.create({ data: ledgerDraft.data });
       const clearsBatch = wouldClearAfterCommitment(batch as never, input.quantity, quote.data.totalAmount);
 
       await tx.batch.update({
@@ -115,7 +141,7 @@ export async function createPersistentCommitment(input: {
         action: "COMMITMENT_CREATE",
         targetType: "BATCH",
         targetId: batch.id,
-        after: { commitmentId: commitment.id, amount: quote.data.totalAmount, quantity: input.quantity },
+        after: { commitmentId: commitment.id, slotId: slot.id, amount: quote.data.totalAmount, quantity: input.quantity, deliverySnapshotId: deliverySnapshot?.id ?? null },
       });
 
       await tx.auditEvent.create({
@@ -129,7 +155,7 @@ export async function createPersistentCommitment(input: {
         },
       });
 
-      return { commitment, ledger, clearsBatch };
+      return { commitment, slot, deliverySnapshot, ledger, clearsBatch };
     });
 
     const payment = await createMockPaymentAdapter().createCommitmentIntent({
