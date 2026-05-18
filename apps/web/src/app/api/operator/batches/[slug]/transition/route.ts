@@ -1,6 +1,8 @@
 import { assertTransition } from "@batch/core";
 import { fail, ok } from "@/lib/api-response";
 import { batches } from "@/lib/data";
+import { useDatabasePersistence } from "@/lib/persistence/mode";
+import { transitionBatch } from "@/lib/persistence/operator-transition-service";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { createAuditDraft } from "@/lib/security/audit";
 import { requireIdempotencyKey } from "@/lib/security/idempotency";
@@ -19,6 +21,18 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
   const { slug } = await context.params;
   const parsed = await parseJson(request, transitionSchema);
   if (!parsed.ok) return parsed.response;
+
+  if (useDatabasePersistence()) {
+    const result = await transitionBatch({
+      actorId: user.id,
+      actorRole: user.role as "OPERATOR" | "ADMIN",
+      batchSlug: slug,
+      to: parsed.data.to,
+      reason: parsed.data.reason,
+    });
+
+    return ok(result, { source: "database", persisted: true, idempotencyKey: idempotency.key });
+  }
 
   const batch = batches.find((item) => item.slug === slug);
   if (!batch) return fail({ code: "BATCH_NOT_FOUND", message: "Batch was not found." }, 404);
