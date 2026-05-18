@@ -1,5 +1,5 @@
 import { fail, ok } from "@/lib/api-response";
-import { mapWebhookProvider, persistPaymentEvent } from "@/lib/persistence/payment-event-store";
+import { mapWebhookProvider, markPaymentEventProcessed, persistPaymentEvent } from "@/lib/persistence/payment-event-store";
 import { useDatabasePersistence } from "@/lib/persistence/mode";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { verifyWebhookRequest, type WebhookProvider } from "@/lib/security/webhooks";
@@ -18,14 +18,22 @@ export async function POST(request: Request, context: { params: Promise<{ provid
 
   const payload = JSON.parse(verification.rawBody || "{}");
   const eventId = payload.id ?? payload.eventId ?? `event_${Date.now()}`;
+  let replayed = false;
+  let alreadyProcessed = false;
 
   if (useDatabasePersistence()) {
-    await persistPaymentEvent({
+    const stored = await persistPaymentEvent({
       provider: mapWebhookProvider(provider),
       eventType: payload.type ?? payload.eventType ?? "unknown",
       externalId: eventId,
       payload,
     });
+    replayed = stored.replayed;
+    alreadyProcessed = stored.alreadyProcessed;
+
+    if (!alreadyProcessed) {
+      await markPaymentEventProcessed(eventId);
+    }
   }
 
   return ok({
@@ -33,5 +41,7 @@ export async function POST(request: Request, context: { params: Promise<{ provid
     accepted: true,
     eventId,
     verification: verification.verification,
+    replayed,
+    alreadyProcessed,
   }, { persisted: useDatabasePersistence() }, 202);
 }
