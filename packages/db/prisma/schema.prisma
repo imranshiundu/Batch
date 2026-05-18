@@ -1,0 +1,488 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  SUPPLIER
+  OPERATOR
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum SupplierVerificationStatus {
+  UNVERIFIED
+  REVIEWED
+  VERIFIED
+  TRUSTED
+  SUSPENDED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKED
+}
+
+enum BatchStatus {
+  DRAFT
+  UNDER_REVIEW
+  OPEN
+  FUNDED
+  SUPPLIER_CONFIRMING
+  ACTIVE
+  PRODUCTION
+  SHIPPED
+  RECEIVED_AT_HUB
+  ALLOCATING
+  DELIVERING
+  DELIVERED
+  SETTLED
+  FAILED
+  REFUNDING
+  REFUNDED
+  DISPUTED
+  CANCELLED
+}
+
+enum BatchType {
+  IMPORT_BATCH
+  LOCAL_SUPPLY_BATCH
+  MERCHANT_RESTOCK_BATCH
+  COMMUNITY_BATCH
+  PRIVATE_BATCH
+  HARVEST_BATCH
+}
+
+enum CommitmentStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  CANCELLED
+  LOCKED
+  ALLOCATED
+  DELIVERED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  NOT_STARTED
+  INTENT_CREATED
+  HELD
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum EscrowStatus {
+  NOT_HELD
+  HELD
+  LOCKED
+  PARTIALLY_RELEASED
+  RELEASED
+  REFUNDING
+  REFUNDED
+}
+
+enum LedgerEntryType {
+  BUYER_COMMITMENT_HOLD
+  BUYER_COMMITMENT_CAPTURE
+  PLATFORM_FEE
+  SUPPLIER_MILESTONE_RELEASE
+  LOGISTICS_PAYOUT
+  REFUND
+  SUPPLIER_BOND_HOLD
+  SUPPLIER_BOND_RELEASE
+  SUPPLIER_BOND_PENALTY
+}
+
+enum LedgerStatus {
+  PENDING
+  POSTED
+  FAILED
+  REVERSED
+}
+
+enum MilestoneStatus {
+  WAITING
+  SUBMITTED
+  APPROVED
+  RELEASED
+  REJECTED
+  OVERDUE
+}
+
+enum ProofType {
+  INVOICE
+  PRODUCTION_PHOTO
+  INSPECTION_REPORT
+  WAREHOUSE_RECEIPT
+  SHIPPING_DOCUMENT
+  CUSTOMS_DOCUMENT
+  DELIVERY_SCAN
+}
+
+enum DeliveryStatus {
+  NOT_READY
+  READY_FOR_DISPATCH
+  IN_TRANSIT
+  AT_HUB
+  OUT_FOR_DELIVERY
+  READY_FOR_PICKUP
+  DELIVERED
+  FAILED
+  DISPUTED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_BUYER
+  RESOLVED_SUPPLIER
+  ESCALATED
+  CLOSED
+}
+
+enum MoneyMovementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  MOCK
+  CIRCLE
+  ARC
+  LOCAL_RAIL
+}
+
+model User {
+  id        String        @id @default(cuid())
+  name      String
+  email     String        @unique
+  phone     String?
+  role      UserRole      @default(BUYER)
+  status    AccountStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  supplier       Supplier?
+  commitments    Commitment[]
+  disputes       Dispute[]
+  auditEvents    AuditEvent[]
+  sentTransfers  BatchSlotTransfer[] @relation("SlotTransferFrom")
+  receivedTransfers BatchSlotTransfer[] @relation("SlotTransferTo")
+}
+
+model Supplier {
+  id                 String                     @id @default(cuid())
+  userId             String                     @unique
+  businessName       String
+  country            String
+  verificationStatus SupplierVerificationStatus @default(UNVERIFIED)
+  riskLevel          RiskLevel                  @default(MEDIUM)
+  rating             Float                      @default(0)
+  completedBatches   Int                        @default(0)
+  failedBatches      Int                        @default(0)
+  bondRequired       Boolean                    @default(false)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id])
+  batches    Batch[]
+  proofs     MilestoneProof[]
+  payouts    Payout[]
+}
+
+model Batch {
+  id                     String      @id @default(cuid())
+  slug                   String      @unique
+  supplierId             String
+  title                  String
+  summary                String
+  category               String
+  type                   BatchType
+  status                 BatchStatus @default(DRAFT)
+  minimumUnits           Int
+  targetUnits            Int
+  committedUnits         Int         @default(0)
+  minimumAmount          Decimal     @db.Decimal(18, 2)
+  committedAmount        Decimal     @default(0) @db.Decimal(18, 2)
+  currency               String      @default("USD")
+  opensAt                DateTime?
+  deadlineAt             DateTime
+  supplierConfirmationDueAt DateTime?
+  estimatedDeliveryStart DateTime?
+  estimatedDeliveryEnd   DateTime?
+  riskLevel              RiskLevel   @default(MEDIUM)
+  deliveryMode           String
+  supplierConfirmed      Boolean     @default(false)
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  supplier        Supplier        @relation(fields: [supplierId], references: [id])
+  tiers           BatchTier[]
+  commitments     Commitment[]
+  allocations     OrderAllocation[]
+  ledgerEntries   EscrowLedgerEntry[]
+  milestones      Milestone[]
+  deliveries      Delivery[]
+  disputes        Dispute[]
+  refunds         Refund[]
+  payouts         Payout[]
+  slotTransfers   BatchSlotTransfer[]
+
+  @@index([status, deadlineAt])
+  @@index([supplierId, status])
+}
+
+model BatchTier {
+  id        String  @id @default(cuid())
+  batchId   String
+  minUnits  Int
+  unitPrice Decimal @db.Decimal(18, 2)
+  label     String
+
+  batch Batch @relation(fields: [batchId], references: [id])
+
+  @@index([batchId, minUnits])
+}
+
+model Commitment {
+  id            String           @id @default(cuid())
+  batchId       String
+  buyerId       String
+  quantity      Int
+  unitPrice     Decimal          @db.Decimal(18, 2)
+  totalAmount   Decimal          @db.Decimal(18, 2)
+  currency      String           @default("USD")
+  status        CommitmentStatus @default(PENDING_PAYMENT)
+  paymentStatus PaymentStatus    @default(NOT_STARTED)
+  escrowStatus  EscrowStatus     @default(NOT_HELD)
+  cancellableUntil DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  batch         Batch              @relation(fields: [batchId], references: [id])
+  buyer         User               @relation(fields: [buyerId], references: [id])
+  allocations   OrderAllocation[]
+  ledgerEntries EscrowLedgerEntry[]
+  disputes      Dispute[]
+  refunds       Refund[]
+  slotTransfers BatchSlotTransfer[]
+
+  @@index([buyerId, status])
+  @@index([batchId, status])
+}
+
+model OrderAllocation {
+  id             String         @id @default(cuid())
+  batchId        String
+  commitmentId   String
+  buyerId        String
+  quantity       Int
+  deliveryMode   String
+  deliveryStatus DeliveryStatus @default(NOT_READY)
+  trackingCode   String?
+  pickupCode     String?
+  deliveryId     String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  batch      Batch       @relation(fields: [batchId], references: [id])
+  commitment Commitment  @relation(fields: [commitmentId], references: [id])
+  delivery   Delivery?   @relation(fields: [deliveryId], references: [id])
+
+  @@index([buyerId, deliveryStatus])
+  @@index([batchId])
+}
+
+model EscrowLedgerEntry {
+  id                String          @id @default(cuid())
+  batchId           String
+  commitmentId      String?
+  milestoneId       String?
+  type              LedgerEntryType
+  amount            Decimal         @db.Decimal(18, 2)
+  currency          String
+  sourceType        String
+  sourceId          String
+  destinationType   String
+  destinationId     String
+  status            LedgerStatus    @default(PENDING)
+  externalReference String?
+  idempotencyKey    String          @unique
+  createdAt         DateTime        @default(now())
+  postedAt          DateTime?
+
+  batch      Batch       @relation(fields: [batchId], references: [id])
+  commitment Commitment? @relation(fields: [commitmentId], references: [id])
+  milestone  Milestone?  @relation(fields: [milestoneId], references: [id])
+
+  @@index([batchId, status])
+  @@index([type, status])
+}
+
+model Milestone {
+  id                String          @id @default(cuid())
+  batchId           String
+  name              String
+  sequence          Int
+  releasePercent    Decimal         @db.Decimal(5, 2)
+  requiredProofType ProofType
+  status            MilestoneStatus @default(WAITING)
+  dueAt             DateTime
+  approvedAt        DateTime?
+  releasedAt        DateTime?
+  createdAt         DateTime        @default(now())
+
+  batch         Batch               @relation(fields: [batchId], references: [id])
+  proofs        MilestoneProof[]
+  ledgerEntries EscrowLedgerEntry[]
+  payouts       Payout[]
+
+  @@unique([batchId, sequence])
+  @@index([status, dueAt])
+}
+
+model MilestoneProof {
+  id          String          @id @default(cuid())
+  milestoneId String
+  supplierId  String
+  fileUrl      String
+  proofType    ProofType
+  notes        String?
+  status       MilestoneStatus @default(SUBMITTED)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime        @default(now())
+
+  milestone Milestone @relation(fields: [milestoneId], references: [id])
+  supplier  Supplier  @relation(fields: [supplierId], references: [id])
+}
+
+model Delivery {
+  id              String         @id @default(cuid())
+  batchId         String
+  carrier         String?
+  hubLocation     String?
+  status          DeliveryStatus @default(NOT_READY)
+  estimatedArrival DateTime?
+  actualArrival   DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  batch       Batch             @relation(fields: [batchId], references: [id])
+  allocations OrderAllocation[]
+}
+
+model Dispute {
+  id           String        @id @default(cuid())
+  batchId      String
+  commitmentId String?
+  buyerId      String
+  type         String
+  status       DisputeStatus @default(OPEN)
+  reason       String
+  resolution   String?
+  openedAt     DateTime      @default(now())
+  closedAt     DateTime?
+
+  batch      Batch       @relation(fields: [batchId], references: [id])
+  commitment Commitment? @relation(fields: [commitmentId], references: [id])
+  buyer      User        @relation(fields: [buyerId], references: [id])
+}
+
+model Refund {
+  id                String              @id @default(cuid())
+  commitmentId      String
+  batchId           String
+  amount            Decimal             @db.Decimal(18, 2)
+  currency          String
+  reason            String
+  status            MoneyMovementStatus @default(PENDING)
+  externalReference String?
+  createdAt         DateTime            @default(now())
+  completedAt       DateTime?
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+  batch      Batch      @relation(fields: [batchId], references: [id])
+}
+
+model Payout {
+  id                String              @id @default(cuid())
+  supplierId        String
+  batchId           String
+  milestoneId       String?
+  amount            Decimal             @db.Decimal(18, 2)
+  currency          String
+  status            MoneyMovementStatus @default(PENDING)
+  externalReference String?
+  createdAt         DateTime            @default(now())
+  completedAt       DateTime?
+
+  supplier  Supplier   @relation(fields: [supplierId], references: [id])
+  batch     Batch      @relation(fields: [batchId], references: [id])
+  milestone Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model BatchSlotTransfer {
+  id             String              @id @default(cuid())
+  batchId        String
+  fromBuyerId    String
+  toBuyerId      String?
+  commitmentId   String
+  quantity       Int
+  transferAmount Decimal             @db.Decimal(18, 2)
+  status         MoneyMovementStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  completedAt    DateTime?
+
+  batch      Batch      @relation(fields: [batchId], references: [id])
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+  fromBuyer  User       @relation("SlotTransferFrom", fields: [fromBuyerId], references: [id])
+  toBuyer    User?      @relation("SlotTransferTo", fields: [toBuyerId], references: [id])
+}
+
+model PaymentEvent {
+  id          String          @id @default(cuid())
+  provider    PaymentProvider
+  eventType   String
+  externalId  String          @unique
+  payload     Json
+  processedAt DateTime?
+  status      String          @default("RECEIVED")
+  createdAt   DateTime        @default(now())
+
+  @@index([provider, status])
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorRole  UserRole?
+  action     String
+  targetType String
+  targetId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([actorId, createdAt])
+}
