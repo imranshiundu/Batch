@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { createSlotBuyOrder } from "@/lib/persistence/slot-matching-service";
+import { listSlotOrders } from "@/lib/persistence/slot-order-lifecycle-service";
 import { useDatabasePersistence } from "@/lib/persistence/mode";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { requireBotScope } from "@/lib/security/bot-access";
@@ -13,6 +14,19 @@ const schema = z.object({
   limitUnitPrice: z.number().positive().optional(),
   expiresAt: z.string().datetime().optional(),
 }).strict();
+
+export async function GET(request: Request) {
+  const botForbidden = await requireBotScope(request, "orders:create");
+  if (botForbidden) return botForbidden;
+
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["BUYER", "OPERATOR", "ADMIN"]);
+  if (forbidden) return forbidden;
+
+  if (!useDatabasePersistence()) return ok([], { source: "demo", message: "Slot orders require database persistence." });
+
+  return ok(await listSlotOrders(user.id), { source: "database" });
+}
 
 export async function POST(request: Request) {
   const botForbidden = await requireBotScope(request, "orders:create");
