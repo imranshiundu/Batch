@@ -1,28 +1,48 @@
-import { fail, ok } from "@/lib/api-response";
+import { ok } from "@/lib/api-response";
 import { batches } from "@/lib/data";
+import { getRequestUser, requireRole } from "@/lib/security/auth";
+import { createAuditDraft } from "@/lib/security/audit";
+import { requireIdempotencyKey } from "@/lib/security/idempotency";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { parseJson, supplierBatchDraftSchema } from "@/lib/security/validation";
 
-export function GET() {
-  return ok(batches.map((batch) => ({ ...batch, supplierEditable: batch.status === "OPEN" || batch.status === "FUNDED" })), { source: "seeded-demo" });
+export function GET(request: Request) {
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["SUPPLIER", "OPERATOR", "ADMIN"]);
+  if (forbidden) return forbidden;
+
+  return ok(batches.map((batch) => ({ ...batch, supplierEditable: batch.status === "OPEN" || batch.status === "FUNDED" })), { source: "seeded-demo", actor: user.id });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body.title !== "string") {
-    return fail({ code: "INVALID_BATCH_DRAFT", message: "title is required to create a supplier batch draft." }, 400);
-  }
+  const limited = rateLimit(request, { key: "supplier-batches", limit: 12, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["SUPPLIER"]);
+  if (forbidden) return forbidden;
+
+  const idempotency = requireIdempotencyKey(request);
+  if (!idempotency.ok) return idempotency.response;
+
+  const parsed = await parseJson(request, supplierBatchDraftSchema);
+  if (!parsed.ok) return parsed.response;
 
   const draft = {
     id: `draft_${Date.now()}`,
     status: "DRAFT",
-    supplierId: "supplier_demo",
-    title: body.title,
-    summary: body.summary ?? "Draft batch pending supplier completion and operator review.",
-    type: body.type ?? "MERCHANT_RESTOCK_BATCH",
-    minimumUnits: Number(body.minimumUnits ?? 0),
-    targetUnits: Number(body.targetUnits ?? body.minimumUnits ?? 0),
-    currency: body.currency ?? "USD",
-    deliveryMode: body.deliveryMode ?? "UNSET",
+    supplierId: user.id,
+    title: parsed.data.title,
+    summary: parsed.data.summary ?? "Draft batch pending supplier completion and operator review.",
+    type: parsed.data.type ?? "MERCHANT_RESTOCK_BATCH",
+    minimumUnits: parsed.data.minimumUnits,
+    targetUnits: parsed.data.targetUnits ?? parsed.data.minimumUnits,
+    currency: parsed.data.currency ?? "USD",
+    deliveryMode: parsed.data.deliveryMode ?? "UNSET",
   };
 
-  return ok(draft, { persisted: false, next: "complete-pricing-delivery-milestones" }, 201);
+  return ok({
+    ...draft,
+    audit: createAuditDraft({ actorId: user.id, actorRole: user.role, action: "SUPPLIER_BATCH_DRAFT_CREATE", targetType: "BATCH", targetId: draft.id, after: draft }),
+  }, { persisted: false, next: "complete-pricing-delivery-milestones", idempotencyKey: idempotency.key }, 201);
 }
