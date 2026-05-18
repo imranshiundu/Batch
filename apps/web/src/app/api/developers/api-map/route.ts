@@ -55,6 +55,9 @@ export function GET() {
       "POST /api/operator/batches/:slug/lock-delivery",
       "GET /api/operator/batches/:slug/ledger-accounts",
       "POST /api/operator/batches/:slug/ledger-accounts",
+      "GET /api/operator/batches/:slug/ledger-postings",
+      "GET /api/operator/batches/:slug/ledger-postings?view=reconcile",
+      "POST /api/operator/batches/:slug/ledger-postings",
     ],
     payments: [
       "POST /api/payments/webhooks/:provider",

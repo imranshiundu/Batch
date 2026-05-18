@@ -10,9 +10,21 @@ const accounts = [
   ["SPV_CONTROL", "Operational control account that can later map to a legal SPV or external wallet."],
 ];
 
+const controls = [
+  ["Positive amount only", "A posting cannot be zero, negative, or non-numeric."],
+  ["Active account only", "Frozen and closed accounts reject new postings."],
+  ["No negative balances", "A debit that pushes an account below zero is blocked."],
+  ["Idempotent posting", "Repeated requests with the same key do not create duplicate ledger entries."],
+  ["Audit event", "Every successful account posting writes an operator audit event."],
+  ["Reconciliation view", "Operators can compare account totals against posted entries."],
+];
+
 const routes = [
   ["GET", "/api/operator/batches/:slug/ledger-accounts", "Read segregated accounts for a batch"],
   ["POST", "/api/operator/batches/:slug/ledger-accounts", "Provision default accounts for a batch"],
+  ["GET", "/api/operator/batches/:slug/ledger-postings", "Read accounts and recent posted entries"],
+  ["GET", "/api/operator/batches/:slug/ledger-postings?view=reconcile", "Run ledger reconciliation view"],
+  ["POST", "/api/operator/batches/:slug/ledger-postings", "Post a credit or debit to a ledger account"],
   ["POST", "/api/slots/transfers/:transferId/hold", "Mark a slot transfer hold posted"],
   ["POST", "/api/slots/transfers/:transferId/complete", "Complete a held slot transfer"],
   ["GET", apiRoutes.developerApiMap, "Read current API surface"],
@@ -20,11 +32,11 @@ const routes = [
 
 export default function FinanceOpsPage() {
   return (
-    <AppShell title="Finance operations" eyebrow="Segregated accounts">
+    <AppShell title="Finance operations" eyebrow="Ledger controls">
       <section className="rounded-3xl border border-line bg-white p-5">
-        <h2 className="text-xl font-semibold text-ink">SPV-ready, not SPV theatre</h2>
+        <h2 className="text-xl font-semibold text-ink">Money must post like infrastructure</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-          Batch now separates money logic by account type. This gives operators an accounting layer that can later map to Circle wallets, bank accounts, Arc settlement, or formal SPV entities when a deal needs that structure.
+          Batch now separates money by account purpose and adds posting controls. Operators can provision accounts, post controlled ledger movements, block negative balances, and reconcile account state before live provider settlement is connected.
         </p>
       </section>
 
@@ -35,6 +47,18 @@ export default function FinanceOpsPage() {
             <p className="mt-2 text-sm leading-6 text-muted">{text}</p>
           </div>
         ))}
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-line bg-white p-5">
+        <h3 className="font-semibold text-ink">Posting discipline</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {controls.map(([title, text]) => (
+            <div key={title} className="rounded-2xl bg-surface p-4">
+              <h4 className="text-sm font-semibold text-ink">{title}</h4>
+              <p className="mt-2 text-sm leading-6 text-muted">{text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-6 rounded-3xl border border-line bg-white p-5">

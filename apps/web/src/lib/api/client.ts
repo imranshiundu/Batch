@@ -34,6 +34,8 @@ export const apiRoutes = {
   developerApiKeys: "/api/developers/api-keys",
   developerApiKeyRevoke: (keyId: string) => `/api/developers/api-keys/${keyId}/revoke`,
   operatorLedgerAccounts: (slug: string) => `/api/operator/batches/${slug}/ledger-accounts`,
+  operatorLedgerPostings: (slug: string) => `/api/operator/batches/${slug}/ledger-postings`,
+  operatorLedgerReconciliation: (slug: string) => `/api/operator/batches/${slug}/ledger-postings?view=reconcile`,
 };
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
@@ -114,6 +116,11 @@ export const batchApi = {
   }),
   listLedgerAccounts: (slug: string) => apiGet(apiRoutes.operatorLedgerAccounts(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
   provisionLedgerAccounts: (slug: string, idempotencyKey: string) => apiPost(apiRoutes.operatorLedgerAccounts(slug), {}, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
+  }),
+  listLedgerPostings: (slug: string) => apiGet(apiRoutes.operatorLedgerPostings(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
+  reconcileLedger: (slug: string) => apiGet(apiRoutes.operatorLedgerReconciliation(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
+  postLedgerEntry: (slug: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.operatorLedgerPostings(slug), body, {
     headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
   }),
 };
