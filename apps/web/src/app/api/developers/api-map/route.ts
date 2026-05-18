@@ -26,6 +26,8 @@ export function GET() {
       "POST /api/slots/orders",
       "POST /api/slots/orders/:orderId/reserve",
       "POST /api/slots/orders/:orderId/cancel",
+      "POST /api/slots/transfers/:transferId/hold",
+      "POST /api/slots/transfers/:transferId/complete",
       "GET /api/slots/pnl",
     ],
     developer: [
@@ -51,6 +53,8 @@ export function GET() {
       "POST /api/operator/commitments/:commitmentId/refund",
       "POST /api/operator/batches/:slug/allocate-deliveries",
       "POST /api/operator/batches/:slug/lock-delivery",
+      "GET /api/operator/batches/:slug/ledger-accounts",
+      "POST /api/operator/batches/:slug/ledger-accounts",
     ],
     payments: [
       "POST /api/payments/webhooks/:provider",
