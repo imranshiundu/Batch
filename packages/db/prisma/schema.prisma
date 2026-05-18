@@ -24,6 +24,7 @@ enum DeliveryStatus { NOT_READY READY_FOR_DISPATCH IN_TRANSIT AT_HUB OUT_FOR_DEL
 enum DisputeStatus { OPEN UNDER_REVIEW RESOLVED_BUYER RESOLVED_SUPPLIER ESCALATED CLOSED }
 enum MoneyMovementStatus { PENDING PROCESSING COMPLETED FAILED CANCELLED }
 enum PaymentProvider { MOCK CIRCLE ARC LOCAL_RAIL }
+enum IdempotencyStatus { PROCESSING COMPLETED FAILED EXPIRED }
 
 model User {
   id        String @id @default(cuid())
@@ -335,8 +336,24 @@ model AuditEvent {
   targetId String
   before Json?
   after Json?
+  reason String?
   createdAt DateTime @default(now())
   actor User? @relation(fields: [actorId], references: [id])
   @@index([targetType, targetId])
   @@index([actorId, createdAt])
+}
+
+model IdempotencyRecord {
+  id String @id @default(cuid())
+  key String @unique
+  actorId String?
+  route String
+  requestHash String
+  responseBody Json?
+  status IdempotencyStatus @default(PROCESSING)
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  expiresAt DateTime
+  @@index([actorId, route])
+  @@index([status, expiresAt])
 }
