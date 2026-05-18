@@ -30,6 +30,7 @@ enum SlotListingStatus { OPEN RESERVED CANCELLED EXPIRED COMPLETED LOCKED }
 enum SlotOrderStatus { OPEN FILLED PARTIALLY_FILLED CANCELLED EXPIRED REJECTED }
 enum SlotTransferStatus { PENDING_FUNDS HELD COMPLETED CANCELLED FAILED DISPUTED }
 enum DeliverySnapshotStatus { ACTIVE REPLACED LOCKED }
+enum ApiKeyStatus { ACTIVE REVOKED EXPIRED SUSPENDED }
 
 model User {
   id        String @id @default(cuid())
@@ -53,6 +54,25 @@ model User {
   slotOrders BatchSlotOrder[]
   sentTransfers BatchSlotTransfer[] @relation("SlotTransferFrom")
   receivedTransfers BatchSlotTransfer[] @relation("SlotTransferTo")
+  botApiKeys BotApiKey[]
+}
+
+model BotApiKey {
+  id String @id @default(cuid())
+  ownerId String
+  name String
+  prefix String
+  keyHash String @unique
+  scopes String[]
+  status ApiKeyStatus @default(ACTIVE)
+  lastUsedAt DateTime?
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner User @relation(fields: [ownerId], references: [id])
+  @@index([ownerId, status])
+  @@index([prefix])
 }
 
 model Profile {

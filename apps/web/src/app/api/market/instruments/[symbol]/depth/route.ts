@@ -3,7 +3,7 @@ import { getBatchDepth } from "@/lib/market/market-service";
 import { requireBotScope } from "@/lib/security/bot-access";
 
 export async function GET(request: Request, context: { params: Promise<{ symbol: string }> }) {
-  const botForbidden = requireBotScope(request, "market:depth:read");
+  const botForbidden = await requireBotScope(request, "market:depth:read");
   if (botForbidden) return botForbidden;
 
   const { symbol } = await context.params;

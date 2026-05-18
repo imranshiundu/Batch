@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Batch API
-  version: 0.1.0
-  description: API surface for Batch commitments, slots, delivery profiles, and bot market access.
+  version: 0.2.0
+  description: API surface for Batch commitments, slots, delivery profiles, bot API keys, and bot market access.
 servers:
   - url: /api
 security:
@@ -13,6 +13,48 @@ paths:
       summary: Health check
       responses:
         '200': { description: OK }
+  /developers/api-keys:
+    get:
+      summary: List developer bot API keys
+      responses:
+        '200': { description: API keys returned without raw secrets }
+    post:
+      summary: Create developer bot API key
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string }
+                scopes:
+                  type: array
+                  items: { type: string }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '201': { description: API key created and raw secret returned once }
+  /developers/api-keys/{keyId}/revoke:
+    post:
+      summary: Revoke developer bot API key
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: keyId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: API key revoked }
   /market/instruments:
     get:
       summary: List batch market instruments
@@ -51,19 +93,6 @@ paths:
         - BotKey: [orders:create]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [symbol, side, orderType, quantity]
-              properties:
-                symbol: { type: string }
-                side: { type: string, enum: [BUY_COMMITMENT, SELL_SLOT] }
-                orderType: { type: string, enum: [MARKET, LIMIT] }
-                quantity: { type: integer, minimum: 1 }
-                limitPrice: { type: number }
       responses:
         '202': { description: Accepted for routing }
   /buyer/commitments:
@@ -147,18 +176,6 @@ paths:
         - BotKey: [orders:create]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [batchSlug, quantity]
-              properties:
-                batchSlug: { type: string }
-                quantity: { type: integer, minimum: 1 }
-                limitUnitPrice: { type: number }
-                expiresAt: { type: string, format: date-time }
       responses:
         '201': { description: Slot order created }
   /slots/orders/{orderId}/cancel:
