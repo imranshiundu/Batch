@@ -1,0 +1,42 @@
+export function serializeBatch(batch: any) {
+  return {
+    id: batch.id,
+    slug: batch.slug,
+    title: batch.title,
+    summary: batch.summary,
+    category: batch.category,
+    type: batch.type,
+    status: batch.status,
+    minimumUnits: batch.minimumUnits,
+    targetUnits: batch.targetUnits,
+    committedUnits: batch.committedUnits,
+    minimumAmount: Number(batch.minimumAmount),
+    committedAmount: Number(batch.committedAmount),
+    currency: batch.currency,
+    deadlineAt: batch.deadlineAt?.toISOString?.() ?? batch.deadlineAt,
+    deliveryMode: batch.deliveryMode,
+    riskLevel: batch.riskLevel,
+    supplier: batch.supplier ? {
+      id: batch.supplier.id,
+      businessName: batch.supplier.businessName,
+      country: batch.supplier.country,
+      verificationStatus: batch.supplier.verificationStatus,
+      riskLevel: batch.supplier.riskLevel,
+    } : null,
+    tiers: Array.isArray(batch.tiers) ? batch.tiers.map((tier: any) => ({
+      id: tier.id,
+      minUnits: tier.minUnits,
+      unitPrice: Number(tier.unitPrice),
+      label: tier.label,
+    })) : [],
+    milestones: Array.isArray(batch.milestones) ? batch.milestones.map((milestone: any) => ({
+      id: milestone.id,
+      name: milestone.name,
+      sequence: milestone.sequence,
+      releasePercent: Number(milestone.releasePercent),
+      requiredProofType: milestone.requiredProofType,
+      status: milestone.status,
+      dueAt: milestone.dueAt?.toISOString?.() ?? milestone.dueAt,
+    })) : [],
+  };
+}
