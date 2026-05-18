@@ -1,7 +1,9 @@
 import { fail } from "@/lib/api-response";
+import { useDatabasePersistence } from "@/lib/persistence/mode";
+import { verifyStoredBotApiKey } from "@/lib/persistence/bot-api-key-service";
 import { hasBotScope, type BotScope } from "@/lib/security/bot-scopes";
 
-export function requireBotScope(request: Request, scope: BotScope) {
+export async function requireBotScope(request: Request, scope: BotScope) {
   const botKey = request.headers.get("x-batch-bot-key");
   const scopeHeader = request.headers.get("x-batch-bot-scopes");
 
@@ -9,6 +11,14 @@ export function requireBotScope(request: Request, scope: BotScope) {
 
   if (!botKey) {
     return fail({ code: "BOT_KEY_REQUIRED", message: "Bot requests must include x-batch-bot-key." }, 401);
+  }
+
+  if (useDatabasePersistence()) {
+    const verified = await verifyStoredBotApiKey(botKey, scope);
+    if (!verified.ok) {
+      return fail({ code: verified.error, message: "Bot API key is not allowed to call this route." }, verified.error === "BOT_SCOPE_DENIED" ? 403 : 401);
+    }
+    return null;
   }
 
   if (!hasBotScope(request.headers, scope)) {
@@ -24,6 +34,6 @@ export function getBotContext(request: Request) {
 
   return {
     keyPreview: `${botKey.slice(0, 8)}...`,
-    scopes: request.headers.get("x-batch-bot-scopes") ?? "",
+    scopes: request.headers.get("x-batch-bot-scopes") ?? "stored-key-or-demo-scopes",
   };
 }
