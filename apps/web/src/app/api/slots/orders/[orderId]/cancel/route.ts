@@ -10,7 +10,7 @@ import { parseJson } from "@/lib/security/validation";
 const schema = z.object({ reason: z.string().min(3).max(500).optional() }).strict();
 
 export async function POST(request: Request, context: { params: Promise<{ orderId: string }> }) {
-  const botForbidden = requireBotScope(request, "orders:cancel");
+  const botForbidden = await requireBotScope(request, "orders:cancel");
   if (botForbidden) return botForbidden;
 
   const user = getRequestUser(request);
