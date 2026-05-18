@@ -1,15 +1,23 @@
 import { ok } from "@/lib/api-response";
 import { batches } from "@/lib/data";
+import { useDatabasePersistence } from "@/lib/persistence/mode";
+import { createSupplierBatchDraft, listSupplierBatchRecords } from "@/lib/persistence/supplier-batch-service";
+import { serializeBatch } from "@/lib/serializers/batch";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { createAuditDraft } from "@/lib/security/audit";
 import { requireIdempotencyKey } from "@/lib/security/idempotency";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { parseJson, supplierBatchDraftSchema } from "@/lib/security/validation";
 
-export function GET(request: Request) {
+export async function GET(request: Request) {
   const user = getRequestUser(request);
   const forbidden = requireRole(user, ["SUPPLIER", "OPERATOR", "ADMIN"]);
   if (forbidden) return forbidden;
+
+  if (useDatabasePersistence()) {
+    const records = await listSupplierBatchRecords(user.id);
+    return ok(records.map(serializeBatch), { source: "database", actor: user.id });
+  }
 
   return ok(batches.map((batch) => ({ ...batch, supplierEditable: batch.status === "OPEN" || batch.status === "FUNDED" })), { source: "seeded-demo", actor: user.id });
 }
@@ -27,6 +35,11 @@ export async function POST(request: Request) {
 
   const parsed = await parseJson(request, supplierBatchDraftSchema);
   if (!parsed.ok) return parsed.response;
+
+  if (useDatabasePersistence()) {
+    const draftRecord = await createSupplierBatchDraft({ supplierUserId: user.id, ...parsed.data });
+    return ok(serializeBatch(draftRecord), { source: "database", persisted: true, idempotencyKey: idempotency.key }, 201);
+  }
 
   const draft = {
     id: `draft_${Date.now()}`,
