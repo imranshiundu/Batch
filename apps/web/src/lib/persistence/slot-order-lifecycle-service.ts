@@ -11,7 +11,10 @@ export async function listSlotOrders(userId: string) {
 
 export async function reserveMatchedSlotOrder(input: { buyerId: string; orderId: string; idempotencyKey: string }) {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.batchSlotOrder.findFirst({ where: { id: input.orderId, buyerId: input.buyerId }, include: { listing: true, batch: true } });
+    const order = await tx.batchSlotOrder.findFirst({
+      where: { id: input.orderId, buyerId: input.buyerId },
+      include: { listing: { include: { slot: true } }, batch: true },
+    });
     if (!order) throw new Error("SLOT_ORDER_NOT_FOUND");
     if (!order.listingId || !order.listing) throw new Error("SLOT_ORDER_HAS_NO_MATCH");
     if (!["OPEN", "PARTIALLY_FILLED"].includes(order.status)) throw new Error("SLOT_ORDER_NOT_RESERVABLE");
@@ -25,7 +28,7 @@ export async function reserveMatchedSlotOrder(input: { buyerId: string; orderId:
         batchId: order.batchId,
         fromBuyerId: order.listing.sellerId,
         toBuyerId: input.buyerId,
-        commitmentId: order.listing.slotId,
+        commitmentId: order.listing.slot.commitmentId,
         slotId: order.listing.slotId,
         listingId: order.listing.id,
         quantity: order.quantity,
@@ -41,6 +44,7 @@ export async function reserveMatchedSlotOrder(input: { buyerId: string; orderId:
     await tx.escrowLedgerEntry.create({
       data: {
         batchId: order.batchId,
+        commitmentId: order.listing.slot.commitmentId,
         type: "SLOT_TRANSFER_HOLD",
         amount: transferAmount,
         currency: order.listing.currency,
