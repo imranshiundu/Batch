@@ -15,7 +15,7 @@ const schema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
-  const botForbidden = requireBotScope(request, "orders:create");
+  const botForbidden = await requireBotScope(request, "orders:create");
   if (botForbidden) return botForbidden;
 
   const user = getRequestUser(request);
