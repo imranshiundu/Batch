@@ -2,11 +2,13 @@ import { fail, ok } from "@/lib/api-response";
 import { demoCommitments } from "@/lib/api-demo-store";
 import { batches } from "@/lib/data";
 import { createCommitmentService } from "@/lib/services/commitment-service";
+import { createPersistentCommitment } from "@/lib/services/persistent-commitment-service";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { requireIdempotencyKey } from "@/lib/security/idempotency";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { createCommitmentSchema, parseJson } from "@/lib/security/validation";
 import { createAuditDraft } from "@/lib/security/audit";
+import { useDatabasePersistence } from "@/lib/persistence/mode";
 
 export function GET(request: Request) {
   const user = getRequestUser(request);
@@ -28,6 +30,18 @@ export async function POST(request: Request) {
 
   const parsed = await parseJson(request, createCommitmentSchema);
   if (!parsed.ok) return parsed.response;
+
+  if (useDatabasePersistence()) {
+    const persistent = await createPersistentCommitment({
+      idempotencyKey: idempotency.key,
+      buyerId: user.id,
+      batchSlug: parsed.data.batchId,
+      quantity: parsed.data.quantity,
+    });
+
+    if (!persistent.ok) return fail(persistent.error, 400);
+    return ok(persistent.data, { source: "database", idempotencyKey: idempotency.key, replayed: persistent.replayed }, 201);
+  }
 
   const batch = batches.find((item) => item.slug === parsed.data.batchId);
   if (!batch) return fail({ code: "BATCH_NOT_FOUND", message: "Batch was not found." }, 404);
