@@ -9,8 +9,9 @@ export function generateStaticParams() {
   return batches.map((batch) => ({ slug: batch.slug }));
 }
 
-export default function BatchDealRoomPage({ params }: { params: { slug: string } }) {
-  const batch = batches.find((item) => item.slug === params.slug);
+export default async function BatchDealRoomPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const batch = batches.find((item) => item.slug === slug);
 
   if (!batch) notFound();
 
