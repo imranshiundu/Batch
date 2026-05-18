@@ -123,7 +123,28 @@ export async function createPersistentCommitment(input: {
 
       if (!ledgerDraft.ok) throw new Error(ledgerDraft.error.code);
 
-      const ledger = await tx.escrowLedgerEntry.create({ data: ledgerDraft.data });
+      const ledger = await tx.escrowLedgerEntry.create({ data: { ...ledgerDraft.data, status: "POSTED", postedAt: new Date() } });
+
+      const ledgerAccount = await tx.ledgerAccount.upsert({
+        where: {
+          batchId_type_currency: {
+            batchId: batch.id,
+            type: "BATCH_ESCROW",
+            currency: quote.data.currency,
+          },
+        },
+        create: {
+          batchId: batch.id,
+          type: "BATCH_ESCROW",
+          label: "Buyer funds held for this batch",
+          currency: quote.data.currency,
+          balance: quote.data.totalAmount,
+        },
+        update: {
+          balance: { increment: quote.data.totalAmount },
+        },
+      });
+
       const clearsBatch = wouldClearAfterCommitment(batch as never, input.quantity, quote.data.totalAmount);
 
       await tx.batch.update({
@@ -141,7 +162,7 @@ export async function createPersistentCommitment(input: {
         action: "COMMITMENT_CREATE",
         targetType: "BATCH",
         targetId: batch.id,
-        after: { commitmentId: commitment.id, slotId: slot.id, amount: quote.data.totalAmount, quantity: input.quantity, deliverySnapshotId: deliverySnapshot?.id ?? null },
+        after: { commitmentId: commitment.id, slotId: slot.id, amount: quote.data.totalAmount, quantity: input.quantity, deliverySnapshotId: deliverySnapshot?.id ?? null, ledgerAccountId: ledgerAccount.id },
       });
 
       await tx.auditEvent.create({
@@ -155,7 +176,7 @@ export async function createPersistentCommitment(input: {
         },
       });
 
-      return { commitment, slot, deliverySnapshot, ledger, clearsBatch };
+      return { commitment, slot, deliverySnapshot, ledger, ledgerAccount, clearsBatch };
     });
 
     const payment = await createMockPaymentAdapter().createCommitmentIntent({
