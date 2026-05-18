@@ -8,8 +8,13 @@
     "build": "pnpm --filter @batch/web build",
     "start": "pnpm --filter @batch/web start",
     "lint": "pnpm --filter @batch/web lint",
-    "typecheck": "pnpm --filter @batch/web typecheck",
+    "typecheck": "pnpm --filter @batch/web typecheck && pnpm --filter @batch/core typecheck && pnpm --filter @batch/payments typecheck",
     "check": "pnpm lint && pnpm typecheck",
+    "core:typecheck": "pnpm --filter @batch/core typecheck",
+    "payments:typecheck": "pnpm --filter @batch/payments typecheck",
+    "db:generate": "pnpm --filter @batch/db prisma:generate",
+    "db:migrate": "pnpm --filter @batch/db prisma:migrate",
+    "db:studio": "pnpm --filter @batch/db prisma:studio",
     "docs": "echo \"Read docs/ and AGENTS.md\""
   },
   "engines": {
