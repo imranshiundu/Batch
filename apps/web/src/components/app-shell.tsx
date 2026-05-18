@@ -14,6 +14,7 @@ const nav = [
   ["Wallet", "/app/wallet"],
   ["Supplier", "/supplier"],
   ["Admin", "/admin"],
+  ["Finance ops", "/operator/finance"],
 ];
 
 export function AppShell({ children, title, eyebrow }: { children: ReactNode; title: string; eyebrow?: string }) {
