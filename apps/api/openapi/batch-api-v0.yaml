@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: Batch API
+  version: 0.1.0
+  description: API contract for Batch conditional commerce.
+servers:
+  - url: /api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: API is reachable
+  /public/batches:
+    get:
+      summary: List public live batches
+      responses:
+        "200":
+          description: List of public batches
+  /batches/{id}:
+    get:
+      summary: Read batch deal room data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Batch detail
+  /buyer/commitments:
+    get:
+      summary: List buyer commitments
+      responses:
+        "200":
+          description: Buyer commitments
+    post:
+      summary: Create buyer commitment
+      description: Quotes commitment, creates payment intent, writes ledger draft, and returns next payment step.
+      responses:
+        "201":
+          description: Commitment created
+  /supplier/batches:
+    post:
+      summary: Create supplier batch draft
+      responses:
+        "201":
+          description: Batch draft created
+  /admin/batches/{id}/approve:
+    post:
+      summary: Approve batch for opening
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Batch approved
+  /admin/milestones/{id}/approve-release:
+    post:
+      summary: Approve milestone release
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Milestone release queued
+  /payments/webhooks/circle:
+    post:
+      summary: Circle webhook receiver
+      responses:
+        "202":
+          description: Event accepted
+  /payments/webhooks/arc:
+    post:
+      summary: Arc webhook receiver
+      responses:
+        "202":
+          description: Event accepted
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data: {}
+        meta:
+          type: object
+        error:
+          anyOf:
+            - type: "null"
+            - type: object
+              properties:
+                code:
+                  type: string
+                message:
+                  type: string
