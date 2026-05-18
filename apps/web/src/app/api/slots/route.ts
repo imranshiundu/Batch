@@ -5,7 +5,7 @@ import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { requireBotScope } from "@/lib/security/bot-access";
 
 export async function GET(request: Request) {
-  const botForbidden = requireBotScope(request, "slots:read");
+  const botForbidden = await requireBotScope(request, "slots:read");
   if (botForbidden) return botForbidden;
 
   const user = getRequestUser(request);
