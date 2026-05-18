@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Batch API
-  version: 0.3.0
-  description: API surface for Batch commitments, slots, segregated ledger accounts, delivery profiles, bot API keys, and bot market access.
+  version: 0.4.0
+  description: API surface for Batch commitments, slots, segregated ledger accounts, delivery profiles, bot API keys, bot market access, supplier operations, operator controls, and payment webhooks.
 servers:
   - url: /api
 security:
@@ -13,6 +13,45 @@ paths:
       summary: Health check
       responses:
         '200': { description: OK }
+  /public/batches:
+    get:
+      summary: List public batches
+      responses:
+        '200': { description: Batches returned }
+  /public/batches/{slug}:
+    get:
+      summary: Read public batch details
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200': { description: Batch returned }
+        '404': { description: Batch not found }
+  /buyer/dashboard:
+    get:
+      summary: Buyer dashboard snapshot
+      responses:
+        '200': { description: Buyer dashboard returned }
+  /buyer/commitments:
+    get:
+      summary: List buyer commitments
+      responses:
+        '200': { description: Commitments returned }
+    post:
+      summary: Create buyer commitment and database-backed Batch Slot
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Commitment created }
+  /developers/bot-manifest:
+    get:
+      summary: Read bot access manifest
+      responses:
+        '200': { description: Manifest returned }
+  /developers/api-map:
+    get:
+      summary: Read grouped API map
+      responses:
+        '200': { description: API map returned }
   /developers/api-keys:
     get:
       summary: List developer bot API keys
@@ -69,19 +108,14 @@ paths:
   /market/orders:
     post:
       summary: Submit a market-style batch instruction
+      description: BUY_COMMITMENT routes into commitment creation. SELL_SLOT is rejected unless routed through owned slot listing routes.
       security:
         - BotKey: [orders:create]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
-        '202': { description: Accepted for routing }
-  /buyer/commitments:
-    post:
-      summary: Create buyer commitment and database-backed Batch Slot
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      responses:
-        '201': { description: Commitment created }
+        '201': { description: Buy commitment routed and created }
+        '409': { description: Slot sale must use slot listing route }
   /profile/delivery:
     get:
       summary: List delivery profiles
@@ -200,42 +234,159 @@ paths:
         - BotKey: [slots:pnl:read]
       responses:
         '200': { description: P/L returned }
+  /supplier/profile:
+    get:
+      summary: Read supplier profile
+      responses:
+        '200': { description: Supplier profile returned }
+    patch:
+      summary: Request supplier profile update
+      responses:
+        '200': { description: Supplier profile update accepted }
+  /supplier/batches:
+    get:
+      summary: List supplier batches
+      responses:
+        '200': { description: Supplier batches returned }
+    post:
+      summary: Create supplier batch draft
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Supplier batch draft created }
+  /supplier/proofs:
+    post:
+      summary: Submit supplier milestone proof
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Proof submitted }
+  /uploads/proofs:
+    post:
+      summary: Create pending proof upload record
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Pending upload created }
+  /operator/overview:
+    get:
+      summary: Operator overview
+      responses:
+        '200': { description: Operator overview returned }
+  /operator/escrow:
+    get:
+      summary: Operator escrow snapshot
+      responses:
+        '200': { description: Escrow snapshot returned }
+  /operator/disputes:
+    get:
+      summary: List disputes
+      responses:
+        '200': { description: Disputes returned }
+    post:
+      summary: Open dispute
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Dispute opened }
+  /operator/batches/{slug}/transition:
+    post:
+      summary: Transition batch status
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200': { description: Batch transitioned }
+  /operator/milestones/{milestoneId}/approve-payout:
+    post:
+      summary: Approve milestone payout
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: milestoneId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Payout approval recorded }
+  /operator/commitments/{commitmentId}/refund:
+    post:
+      summary: Create commitment refund
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: commitmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Refund created }
+  /operator/batches/{slug}/allocate-deliveries:
+    post:
+      summary: Allocate batch deliveries
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200': { description: Deliveries allocated }
+  /operator/batches/{slug}/lock-delivery:
+    post:
+      summary: Lock delivery and stop normal slot transfer
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200': { description: Delivery locked }
   /operator/batches/{slug}/ledger-accounts:
     get:
       summary: List segregated ledger accounts for a batch
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/Slug'
       responses:
         '200': { description: Ledger accounts returned }
     post:
       summary: Provision default segregated ledger accounts for a batch
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/Slug'
       responses:
         '201': { description: Ledger accounts provisioned }
-  /operator/batches/{slug}/lock-delivery:
+  /operator/batches/{slug}/ledger-postings:
+    get:
+      summary: List ledger postings or reconciliation view
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+        - name: view
+          in: query
+          required: false
+          schema: { type: string, enum: [reconcile] }
+      responses:
+        '200': { description: Ledger postings or reconciliation returned }
     post:
-      summary: Lock delivery and stop normal slot transfer
+      summary: Post controlled entry to a segregated ledger account
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
-        - name: slug
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '201': { description: Ledger entry posted }
+  /payments/webhooks/{provider}:
+    post:
+      summary: Receive payment provider webhook
+      parameters:
+        - name: provider
           in: path
           required: true
-          schema: { type: string }
+          schema: { type: string, enum: [circle, arc, mock, local] }
       responses:
-        '200': { description: Delivery locked }
+        '202': { description: Webhook accepted }
 components:
   parameters:
     IdempotencyKey:
       name: Idempotency-Key
       in: header
+      required: true
+      schema: { type: string }
+    Slug:
+      name: slug
+      in: path
       required: true
       schema: { type: string }
   securitySchemes:
