@@ -18,6 +18,8 @@ enum PaymentStatus { NOT_STARTED INTENT_CREATED HELD CAPTURED FAILED REFUNDED }
 enum EscrowStatus { NOT_HELD HELD LOCKED PARTIALLY_RELEASED RELEASED REFUNDING REFUNDED }
 enum LedgerEntryType { BUYER_COMMITMENT_HOLD BUYER_COMMITMENT_CAPTURE PLATFORM_FEE SUPPLIER_MILESTONE_RELEASE LOGISTICS_PAYOUT REFUND SUPPLIER_BOND_HOLD SUPPLIER_BOND_RELEASE SUPPLIER_BOND_PENALTY SLOT_TRANSFER_HOLD SLOT_TRANSFER_SETTLEMENT SLOT_TRANSFER_FEE }
 enum LedgerStatus { PENDING POSTED FAILED REVERSED }
+enum LedgerAccountType { BATCH_ESCROW SUPPLIER_PAYABLE LOGISTICS_PAYABLE PLATFORM_FEE REFUND_RESERVE SPV_CONTROL }
+enum LedgerAccountStatus { ACTIVE FROZEN CLOSED }
 enum MilestoneStatus { WAITING SUBMITTED APPROVED RELEASED REJECTED OVERDUE }
 enum ProofType { INVOICE PRODUCTION_PHOTO INSPECTION_REPORT WAREHOUSE_RECEIPT SHIPPING_DOCUMENT CUSTOMS_DOCUMENT DELIVERY_SCAN }
 enum DeliveryStatus { NOT_READY READY_FOR_DISPATCH IN_TRANSIT AT_HUB OUT_FOR_DELIVERY READY_FOR_PICKUP DELIVERED FAILED DISPUTED }
@@ -191,6 +193,7 @@ model Batch {
   commitments Commitment[]
   slots BatchSlot[]
   allocations OrderAllocation[]
+  ledgerAccounts LedgerAccount[]
   ledgerEntries EscrowLedgerEntry[]
   milestones Milestone[]
   deliveries Delivery[]
@@ -203,6 +206,27 @@ model Batch {
   @@index([status, deadlineAt])
   @@index([supplierId, status])
   @@index([category, status])
+}
+
+model LedgerAccount {
+  id String @id @default(cuid())
+  batchId String
+  type LedgerAccountType
+  label String
+  currency String @default("USD")
+  balance Decimal @default(0) @db.Decimal(18, 2)
+  status LedgerAccountStatus @default(ACTIVE)
+  externalProvider PaymentProvider?
+  externalReference String?
+  legalEntityName String?
+  jurisdiction String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch Batch @relation(fields: [batchId], references: [id])
+  @@unique([batchId, type, currency])
+  @@index([batchId, status])
+  @@index([type, status])
 }
 
 model BatchTier {
