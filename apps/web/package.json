@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@batch/core": "workspace:*",
-    "@batch/db": "workspace:*",
-    "@batch/payments": "workspace:*",
+    "@batch/core": "file:../../packages/core",
+    "@batch/db": "file:../../packages/db",
+    "@batch/payments": "file:../../packages/payments",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "next": "^15.0.0",

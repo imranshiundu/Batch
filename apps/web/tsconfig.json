@@ -15,7 +15,13 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@batch/core": ["../../packages/core/src/index.ts"],
+      "@batch/core/*": ["../../packages/core/src/*"],
+      "@batch/db": ["../../packages/db/src/index.ts"],
+      "@batch/db/*": ["../../packages/db/src/*"],
+      "@batch/payments": ["../../packages/payments/src/index.ts"],
+      "@batch/payments/*": ["../../packages/payments/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
