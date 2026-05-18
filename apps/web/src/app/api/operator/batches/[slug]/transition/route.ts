@@ -1,24 +1,37 @@
 import { assertTransition } from "@batch/core";
 import { fail, ok } from "@/lib/api-response";
 import { batches } from "@/lib/data";
+import { getRequestUser, requireRole } from "@/lib/security/auth";
+import { createAuditDraft } from "@/lib/security/audit";
+import { requireIdempotencyKey } from "@/lib/security/idempotency";
+import { transitionSchema, parseJson } from "@/lib/security/validation";
 
 type CoreStatus = Parameters<typeof assertTransition>[0];
 
 export async function POST(request: Request, context: { params: Promise<{ slug: string }> }) {
-  const { slug } = await context.params;
-  const body = await request.json().catch(() => null);
-  const batch = batches.find((item) => item.slug === slug);
+  const user = getRequestUser(request);
+  const forbidden = requireRole(user, ["OPERATOR", "ADMIN"]);
+  if (forbidden) return forbidden;
 
+  const idempotency = requireIdempotencyKey(request);
+  if (!idempotency.ok) return idempotency.response;
+
+  const { slug } = await context.params;
+  const parsed = await parseJson(request, transitionSchema);
+  if (!parsed.ok) return parsed.response;
+
+  const batch = batches.find((item) => item.slug === slug);
   if (!batch) return fail({ code: "BATCH_NOT_FOUND", message: "Batch was not found." }, 404);
-  if (!body || typeof body.to !== "string") return fail({ code: "INVALID_TRANSITION", message: "Target status is required." }, 400);
 
   const from = mapStatus(batch.status);
-  const to = body.to as CoreStatus;
+  const to = parsed.data.to as CoreStatus;
   const transition = assertTransition(from, to);
 
   if (!transition.ok) return fail(transition.error, 400);
 
-  return ok({ batchId: slug, from, to, auditRequired: true, persisted: false }, { mode: "operator-transition-demo" });
+  const audit = createAuditDraft({ actorId: user.id, actorRole: user.role, action: "BATCH_TRANSITION", targetType: "BATCH", targetId: slug, before: { status: from }, after: { status: to }, reason: parsed.data.reason });
+
+  return ok({ batchId: slug, from, to, audit, persisted: false }, { mode: "operator-transition-demo", idempotencyKey: idempotency.key });
 }
 
 function mapStatus(status: string): CoreStatus {
