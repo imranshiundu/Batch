@@ -25,12 +25,15 @@ export const apiRoutes = {
   slotOrders: "/api/slots/orders",
   slotOrderReserve: (orderId: string) => `/api/slots/orders/${orderId}/reserve`,
   slotOrderCancel: (orderId: string) => `/api/slots/orders/${orderId}/cancel`,
+  slotTransferHold: (transferId: string) => `/api/slots/transfers/${transferId}/hold`,
+  slotTransferComplete: (transferId: string) => `/api/slots/transfers/${transferId}/complete`,
   slotPnl: "/api/slots/pnl",
   deliveryProfiles: "/api/profile/delivery",
   developerManifest: "/api/developers/bot-manifest",
   developerApiMap: "/api/developers/api-map",
   developerApiKeys: "/api/developers/api-keys",
   developerApiKeyRevoke: (keyId: string) => `/api/developers/api-keys/${keyId}/revoke`,
+  operatorLedgerAccounts: (slug: string) => `/api/operator/batches/${slug}/ledger-accounts`,
 };
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
@@ -85,6 +88,12 @@ export const batchApi = {
   reserveSlotOrder: (orderId: string, idempotencyKey: string) => apiPost(apiRoutes.slotOrderReserve(orderId), {}, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
+  markSlotTransferHold: (transferId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.slotTransferHold(transferId), body, {
+    headers: idempotencyHeaders(idempotencyKey),
+  }),
+  completeSlotTransfer: (transferId: string, idempotencyKey: string) => apiPost(apiRoutes.slotTransferComplete(transferId), {}, {
+    headers: idempotencyHeaders(idempotencyKey),
+  }),
   createSlotListing: (body: unknown, idempotencyKey: string) => apiPost(apiRoutes.slotListings, body, {
     headers: idempotencyHeaders(idempotencyKey),
   }),
@@ -102,5 +111,9 @@ export const batchApi = {
   }),
   revokeDeveloperApiKey: (keyId: string, body: unknown, idempotencyKey: string) => apiPost(apiRoutes.developerApiKeyRevoke(keyId), body, {
     headers: idempotencyHeaders(idempotencyKey),
+  }),
+  listLedgerAccounts: (slug: string) => apiGet(apiRoutes.operatorLedgerAccounts(slug), { headers: { "x-batch-demo-role": "OPERATOR" } }),
+  provisionLedgerAccounts: (slug: string, idempotencyKey: string) => apiPost(apiRoutes.operatorLedgerAccounts(slug), {}, {
+    headers: idempotencyHeaders(idempotencyKey, "OPERATOR"),
   }),
 };
