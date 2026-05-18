@@ -1,21 +1,21 @@
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
+import { createSlotBuyOrder } from "@/lib/persistence/slot-matching-service";
 import { useDatabasePersistence } from "@/lib/persistence/mode";
-import { createSlotListing } from "@/lib/persistence/slot-service";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
 import { requireBotScope } from "@/lib/security/bot-access";
 import { requireIdempotencyKey } from "@/lib/security/idempotency";
 import { parseJson } from "@/lib/security/validation";
 
 const schema = z.object({
-  slotId: z.string().min(1),
+  batchSlug: z.string().min(1),
   quantity: z.number().int().positive(),
-  askUnitPrice: z.number().positive(),
+  limitUnitPrice: z.number().positive().optional(),
   expiresAt: z.string().datetime().optional(),
 }).strict();
 
 export async function POST(request: Request) {
-  const botForbidden = requireBotScope(request, "slots:listings:create");
+  const botForbidden = requireBotScope(request, "orders:create");
   if (botForbidden) return botForbidden;
 
   const user = getRequestUser(request);
@@ -29,19 +29,20 @@ export async function POST(request: Request) {
   if (!parsed.ok) return parsed.response;
 
   if (!useDatabasePersistence()) {
-    return ok({ id: `slot_listing_${Date.now()}`, sellerId: user.id, ...parsed.data, status: "OPEN" }, { persisted: false, idempotencyKey: idempotency.key }, 201);
+    return ok({ id: `slot_order_${Date.now()}`, buyerId: user.id, ...parsed.data, status: "OPEN" }, { persisted: false, idempotencyKey: idempotency.key }, 201);
   }
 
   try {
-    const listing = await createSlotListing({
-      sellerId: user.id,
-      slotId: parsed.data.slotId,
+    const result = await createSlotBuyOrder({
+      buyerId: user.id,
+      batchSlug: parsed.data.batchSlug,
       quantity: parsed.data.quantity,
-      askUnitPrice: parsed.data.askUnitPrice,
+      limitUnitPrice: parsed.data.limitUnitPrice,
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
     });
-    return ok(listing, { source: "database", idempotencyKey: idempotency.key }, 201);
+
+    return ok(result, { source: "database", idempotencyKey: idempotency.key }, 201);
   } catch (error) {
-    return fail({ code: error instanceof Error ? error.message : "SLOT_LISTING_FAILED", message: "Slot listing could not be created." }, 400);
+    return fail({ code: error instanceof Error ? error.message : "SLOT_ORDER_CREATE_FAILED", message: "Slot order could not be created." }, 400);
   }
 }

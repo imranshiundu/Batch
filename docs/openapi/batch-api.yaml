@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: Batch API
+  version: 0.1.0
+  description: API surface for Batch commitments, slots, delivery profiles, and bot market access.
+servers:
+  - url: /api
+security:
+  - DemoRole: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200': { description: OK }
+  /market/instruments:
+    get:
+      summary: List batch market instruments
+      security:
+        - BotKey: [market:read]
+      responses:
+        '200': { description: Instruments returned }
+  /market/instruments/{symbol}:
+    get:
+      summary: Read a batch market instrument
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Instrument returned }
+        '404': { description: Instrument not found }
+  /market/instruments/{symbol}/depth:
+    get:
+      summary: Read batch market depth
+      security:
+        - BotKey: [market:depth:read]
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Depth returned }
+        '404': { description: Instrument not found }
+  /market/orders:
+    post:
+      summary: Submit a market-style batch instruction
+      security:
+        - BotKey: [orders:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, side, orderType, quantity]
+              properties:
+                symbol: { type: string }
+                side: { type: string, enum: [BUY_COMMITMENT, SELL_SLOT] }
+                orderType: { type: string, enum: [MARKET, LIMIT] }
+                quantity: { type: integer, minimum: 1 }
+                limitPrice: { type: number }
+      responses:
+        '202': { description: Accepted for routing }
+  /buyer/commitments:
+    post:
+      summary: Create buyer commitment and database-backed Batch Slot
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [batchId, quantity]
+              properties:
+                batchId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+                deliveryProfileId: { type: string }
+      responses:
+        '201': { description: Commitment created }
+  /profile/delivery:
+    get:
+      summary: List delivery profiles
+      security:
+        - BotKey: [delivery:read]
+      responses:
+        '200': { description: Delivery profiles returned }
+    post:
+      summary: Create delivery profile
+      security:
+        - BotKey: [delivery:write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Delivery profile created }
+  /slots:
+    get:
+      summary: List owned Batch Slots
+      security:
+        - BotKey: [slots:read]
+      responses:
+        '200': { description: Slots returned }
+  /slots/listings:
+    post:
+      summary: List an owned Batch Slot for transfer
+      security:
+        - BotKey: [slots:listings:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slotId, quantity, askUnitPrice]
+              properties:
+                slotId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+                askUnitPrice: { type: number, minimum: 0 }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '201': { description: Listing created }
+  /slots/listings/{listingId}/purchase:
+    post:
+      summary: Purchase a listed Batch Slot
+      security:
+        - BotKey: [slots:listings:purchase]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: listingId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Slot purchase recorded internally }
+  /slots/orders:
+    post:
+      summary: Create slot buy order
+      security:
+        - BotKey: [orders:create]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [batchSlug, quantity]
+              properties:
+                batchSlug: { type: string }
+                quantity: { type: integer, minimum: 1 }
+                limitUnitPrice: { type: number }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '201': { description: Slot order created }
+  /slots/orders/{orderId}/cancel:
+    post:
+      summary: Cancel an open slot order
+      security:
+        - BotKey: [orders:cancel]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Order cancelled }
+  /slots/pnl:
+    get:
+      summary: Read slot P/L
+      security:
+        - BotKey: [slots:pnl:read]
+      responses:
+        '200': { description: P/L returned }
+  /operator/batches/{slug}/lock-delivery:
+    post:
+      summary: Lock delivery and stop normal slot transfer
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Delivery locked }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string }
+  securitySchemes:
+    DemoRole:
+      type: apiKey
+      in: header
+      name: x-batch-demo-role
+    BotKey:
+      type: apiKey
+      in: header
+      name: x-batch-bot-key
