@@ -3,6 +3,7 @@ import { fail, ok } from "@/lib/api-response";
 import { useDatabasePersistence } from "@/lib/persistence/mode";
 import { createSlotListing } from "@/lib/persistence/slot-service";
 import { getRequestUser, requireRole } from "@/lib/security/auth";
+import { requireBotScope } from "@/lib/security/bot-access";
 import { requireIdempotencyKey } from "@/lib/security/idempotency";
 import { parseJson } from "@/lib/security/validation";
 
@@ -14,6 +15,9 @@ const schema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
+  const botForbidden = requireBotScope(request, "slots:listings:create");
+  if (botForbidden) return botForbidden;
+
   const user = getRequestUser(request);
   const forbidden = requireRole(user, ["BUYER"]);
   if (forbidden) return forbidden;
