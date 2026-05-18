@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 const nav = [
   ["Home", "/app"],
   ["Live batches", "/batches"],
+  ["Batch market", "/market"],
+  ["Developers", "/developers"],
   ["My deals", "/app/my-batches"],
   ["Deliveries", "/app/deliveries"],
   ["Wallet", "/app/wallet"],
