@@ -49,15 +49,29 @@ packages/notifications Email/SMS/WhatsApp adapters
 packages/config Shared TypeScript, lint, env, constants
 ```
 
-## Current branch
+## Starting template decision
 
-This repo is being planned in `foundation/app-architecture-template`.
+Batch should start from a modern app/dashboard foundation, not an ecommerce storefront.
 
-Start reading:
+Recommended path:
+
+```txt
+fresh Next.js app
++ shadcn/ui blocks
++ Batch-specific dashboard screens
++ Prisma/Postgres
++ mock ledger
++ Circle/Arc adapters later
+```
+
+Read `docs/11-starting-template.md` before scaffolding UI.
+
+## Start reading
 
 1. `docs/00-product-brief.md`
 2. `docs/01-architecture.md`
 3. `docs/02-api-contract.md`
 4. `docs/03-database.md`
 5. `docs/04-ui-rules.md`
-6. `AGENTS.md`
+6. `docs/11-starting-template.md`
+7. `AGENTS.md`
