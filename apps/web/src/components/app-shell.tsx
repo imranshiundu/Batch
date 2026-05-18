@@ -1,15 +1,17 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 const nav = [
   ["Home", "/app"],
   ["Live batches", "/batches"],
   ["My deals", "/app/my-batches"],
+  ["Deliveries", "/app/deliveries"],
   ["Wallet", "/app/wallet"],
   ["Supplier", "/supplier"],
   ["Admin", "/admin"],
 ];
 
-export function AppShell({ children, title, eyebrow }: { children: React.ReactNode; title: string; eyebrow?: string }) {
+export function AppShell({ children, title, eyebrow }: { children: ReactNode; title: string; eyebrow?: string }) {
   return (
     <main className="min-h-screen bg-surface">
       <aside className="fixed left-0 top-0 hidden h-screen w-64 border-r border-line bg-white p-6 lg:block">
