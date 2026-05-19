@@ -1,20 +1,46 @@
 # Batch
 
+![Batch hero](docs/assets/batch-hero.svg)
+
 **Buy together. Pay only when the deal clears.**
 
-Batch is an app-first conditional commerce platform. Buyers commit funds into live group deals. If enough demand forms before the deadline, the batch clears, suppliers fulfill the order, and each buyer receives their own allocation. If the deal fails, funds return automatically.
+Batch is a conditional commerce platform for serious group deals. Buyers commit funds into a live batch, the deal clears only when enough demand forms, suppliers fulfill against milestone proof, and every buyer receives their own allocation. If the deal fails, funds move through the refund path instead of disappearing into chat-based promises.
 
-Batch is not a small-store ecommerce template. It is a deal-clearing app built around commitments, thresholds, escrow, milestones, delivery, and refunds.
+It is not a small-store ecommerce template. Batch is a deal-clearing system built around commitments, thresholds, escrow, supplier proof, delivery allocation, disputes, and refunds.
 
-## Product thesis
+## Why Batch exists
 
-People already group-buy, preorder, import together, collect money in chats, and coordinate with suppliers manually. The failure is not demand. The failure is trust, timing, payment discipline, and delivery proof.
+People already group-buy, preorder, import together, collect money in chats, and coordinate with suppliers manually. Demand exists. The hard problems are trust, timing, payment discipline, delivery proof, and clean refunds.
 
 Batch turns scattered demand into committed money.
 
+## What Batch does
+
+```txt
+Buyer commits money -> batch reaches threshold -> funds stay protected -> supplier proves progress -> order ships -> buyer receives allocation
+
+If the threshold fails -> refund path starts
+If proof fails -> operator review starts
+If delivery splits -> each buyer still has an individual allocation record
+```
+
+## The product in one map
+
+![Batch platform map](docs/assets/batch-platform-map.svg)
+
+## Core surfaces
+
+| Surface | Purpose |
+| --- | --- |
+| Buyer app | Discover live batches, commit funds, track escrow, manage slots, receive deliveries, request refunds, open disputes. |
+| Supplier app | Create batch offers, submit proof, track milestones, receive approved payouts, manage fulfillment. |
+| Operator app | Control escrow events, supplier checks, disputes, ledger postings, payment callbacks, delivery allocation, and audit logs. |
+| Developer API | Scoped bot/API access for market reads, slot actions, and controlled order creation without bypassing Batch rules. |
+| Public site | Clear product explanation for buyers, suppliers, partners, grant reviewers, and judges. |
+
 ## First wedge
 
-Start with small merchant inventory batches:
+Start with small merchant inventory batches where waiting can create a real price advantage:
 
 - phone accessories
 - beauty stock
@@ -24,18 +50,21 @@ Start with small merchant inventory batches:
 - tools
 - uniforms
 
-These categories are planned purchases. Waiting can create a real price advantage. Goods are easier to inspect than perishable produce.
+These categories are planned purchases, easier to inspect than perishables, and practical for grouped demand.
 
-## App surfaces
+## Trust model
 
-- Buyer app: live batches, commitments, wallet, delivery, refunds, disputes
-- Supplier app: create batches, proof uploads, milestones, payouts, allocation
-- Operator app: escrow ledger, supplier verification, dispute center, payment events, audit logs
-- Public website: serious product explanation for buyers, suppliers, partners, grants, and judges
+Batch is designed around proof instead of promises:
+
+- buyers do not rely on chat screenshots
+- suppliers do not receive blind full upfront release
+- operators can inspect ledger and payment events
+- refunds are part of the product, not an afterthought
+- delivery is split per buyer even when purchasing happens in bulk
 
 ## Architecture direction
 
-Batch is API-first so the same backend can serve web, mobile, partner integrations, and future native apps.
+Batch is API-first so the same backend can serve web, mobile, partner integrations, bot integrations, and future native apps.
 
 ```txt
 apps/web       Web/PWA app and public site
@@ -47,6 +76,24 @@ packages/payments Circle, Arc, local payment adapters
 packages/logistics Delivery, pickup, tracking primitives
 packages/notifications Email/SMS/WhatsApp adapters
 packages/config Shared TypeScript, lint, env, constants
+```
+
+## Frontend direction
+
+The frontend should feel like a serious financial-commerce app, not a generic shop theme:
+
+- calm black, white, and soft neutral UI
+- app-first navigation
+- clear batch status language
+- escrow and refund visibility
+- supplier proof timeline
+- operator-grade ledger and dispute views
+- no fake success states where backend data is missing
+
+The active frontend working branch is:
+
+```txt
+frontend-full-pass
 ```
 
 ## Starting template decision
