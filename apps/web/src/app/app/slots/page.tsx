@@ -1,53 +1,72 @@
-import { AppShell } from "@/components/app-shell";
-import { apiRoutes } from "@/lib/api/client";
+"use client";
 
-const slotRoutes = [
-  ["GET", apiRoutes.slots, "Read owned batch slots"],
-  ["POST", apiRoutes.slotListings, "List an owned slot for transfer"],
-  ["GET", apiRoutes.slotPnl, "Read realized and listed-slot P/L"],
-  ["POST", "/api/slots/listings/:listingId/purchase", "Purchase a listed slot"],
-];
+import * as React from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { AppShell } from "@/components/app-shell";
+import { batchApi } from "@/lib/api/client";
+import { CanonicalStatus, EmptyState, ErrorState, formatMoney, LoadingState, PageHeading, readArray, readNumber, readText, Surface, type JsonRecord } from "@/components/ui/data-state";
 
 export default function SlotsPage() {
+  const [slots, setSlots] = React.useState<JsonRecord[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    batchApi.listSlots()
+      .then((result) => {
+        if (!mounted) return;
+        if (!result.ok) return setError(result.error?.message ?? "Slots endpoint returned an error.");
+        setSlots(readArray<JsonRecord>(result.data, ["slots", "items", "data"]));
+      })
+      .catch((err: Error) => mounted && setError(err.message))
+      .finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
+  }, []);
+
   return (
-    <AppShell title="My slots" eyebrow="Transferable batch positions">
-      <section className="rounded-3xl border border-line bg-white p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-ink">Slots are real batch rights</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              A slot is the user&apos;s allocation inside a live batch. It carries quantity, entry price, delivery rights, refund path, and transfer lock rules. This page is the basic frontend anchor for slot ownership and resale.
-            </p>
-          </div>
-          <span className="rounded-full bg-surface px-4 py-2 text-xs font-medium text-muted">API connected</span>
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
-        {[
-          ["Own", "Slots are created after a buyer commitment."],
-          ["List", "A user can list transferable quantity before delivery lock."],
-          ["Lock", "Transfers stop when delivery allocation begins."],
-        ].map(([title, text]) => (
-          <div key={title} className="rounded-3xl border border-line bg-white p-5">
-            <h3 className="font-semibold text-ink">{title}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted">{text}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-line bg-white p-5">
-        <h3 className="font-semibold text-ink">API connection points</h3>
-        <div className="mt-4 grid gap-3">
-          {slotRoutes.map(([method, path, purpose]) => (
-            <div key={`${method}-${path}`} className="grid gap-2 rounded-2xl bg-surface p-4 md:grid-cols-[90px_1fr_1.2fr]">
-              <span className="font-mono text-xs font-semibold text-ink">{method}</span>
-              <span className="font-mono text-xs text-muted">{path}</span>
-              <span className="text-sm text-muted">{purpose}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+    <AppShell title="My Slots" eyebrow="Transferable batch positions">
+      <div className="space-y-6">
+        <PageHeading eyebrow="Buyer market" title="My Slots" copy="Slots are real batch rights: quantity, entry price, delivery lock, transfer state, and P/L are rendered from GET /api/slots." action={<Link href="/app/slots/pnl"><Button size="sm" variant="secondary">View P/L</Button></Link>} />
+        {loading ? <LoadingState rows={4} /> : null}
+        {error ? <ErrorState message={error} /> : null}
+        {!loading && !error && !slots.length ? <EmptyState title="No active slots. Browse open batches." copy="Slots are created by the backend after buyer commitments are accepted." /> : null}
+        {!loading && !error && slots.length ? <Surface className="divide-y divide-line p-3">{slots.map((slot) => <SlotRow key={readText(slot, ["id", "slotId"])} slot={slot} />)}</Surface> : null}
+      </div>
     </AppShell>
+  );
+}
+
+function SlotRow({ slot }: { slot: JsonRecord }) {
+  const currency = readText(slot, ["currency"], "USD");
+  const status = readText(slot, ["status"], "ACTIVE");
+  const batchStatus = readText(slot, ["batchStatus", "batch.status"], "OPEN");
+  const quantity = readNumber(slot, ["quantity", "units"], 0);
+  const entry = readNumber(slot, ["entryUnitPrice", "entryPrice", "unitPrice"], 0);
+  const ask = readNumber(slot, ["currentAsk", "askUnitPrice", "listing.askUnitPrice"], 0);
+  const net = readNumber(slot, ["pnl.net", "netPnl", "net"], ask && entry ? (ask - entry) * quantity : 0);
+  const returnPercent = entry > 0 ? (net / (entry * quantity)) * 100 : readNumber(slot, ["pnl.returnPercent", "returnPercent"], 0);
+  const locked = Boolean(slot.deliveryLockAt) || ["LOCKED", "DELIVERED", "REFUNDED", "DISPUTED"].includes(status.toUpperCase());
+
+  return (
+    <div className="grid gap-4 rounded-[10px] px-3 py-4 md:grid-cols-[1.5fr_1fr_auto] md:items-center">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[15px] font-medium text-ink-primary">{readText(slot, ["batchTitle", "batch.title", "title"], "Batch slot")}</h3>
+          <CanonicalStatus status={status} />
+          <CanonicalStatus status={batchStatus} />
+        </div>
+        <p className="mt-2 text-[13px] text-ink-secondary">{quantity} units · Entry {formatMoney(entry, currency)} {ask ? `· Ask ${formatMoney(ask, currency)}` : ""}</p>
+      </div>
+      <div>
+        <p className={`font-mono text-[18px] font-medium ${net >= 0 ? "text-semantic-cleared" : "text-rose-700"}`}>{net >= 0 ? "+" : ""}{formatMoney(net, currency)}</p>
+        <p className="mt-1 text-[12px] text-ink-secondary">{returnPercent >= 0 ? "+" : ""}{returnPercent.toFixed(1)}% net return</p>
+      </div>
+      <div className="flex flex-wrap gap-2 md:justify-end">
+        {locked ? <span className="inline-flex h-[32px] items-center rounded-[6px] bg-semantic-warningLight px-3 text-[12px] font-medium text-semantic-warning">Delivery locked</span> : <Button size="sm" variant="secondary">List for Transfer</Button>}
+        {status.toUpperCase() === "LISTED" ? <Button size="sm" variant="ghost">Cancel Listing</Button> : null}
+      </div>
+    </div>
   );
 }
