@@ -1,0 +1,36 @@
+<svg width="1280" height="560" viewBox="0 0 1280 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="560" rx="36" fill="#0B0F14"/>
+  <circle cx="1050" cy="120" r="220" fill="#14233A" opacity="0.8"/>
+  <circle cx="240" cy="470" r="260" fill="#123326" opacity="0.75"/>
+  <rect x="72" y="72" width="1136" height="416" rx="28" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.14"/>
+  <text x="112" y="148" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="800">Batch</text>
+  <text x="112" y="196" fill="#C7D2FE" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">Buy together. Pay only when the deal clears.</text>
+  <text x="112" y="250" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="20">Conditional commerce for real group deals: commitments, thresholds, escrow, supplier proof, delivery, and refunds.</text>
+
+  <g transform="translate(112 318)">
+    <rect width="210" height="96" rx="18" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="24" y="38" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Commit</text>
+    <text x="24" y="66" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="14">Buyers reserve demand</text>
+  </g>
+  <path d="M345 366H420" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M410 354L424 366L410 378" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(440 318)">
+    <rect width="210" height="96" rx="18" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="24" y="38" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Clear</text>
+    <text x="24" y="66" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="14">Threshold unlocks order</text>
+  </g>
+  <path d="M673 366H748" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M738 354L752 366L738 378" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(768 318)">
+    <rect width="210" height="96" rx="18" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="24" y="38" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Fulfill</text>
+    <text x="24" y="66" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="14">Supplier proves progress</text>
+  </g>
+  <path d="M1001 366H1076" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M1066 354L1080 366L1066 378" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(1096 318)">
+    <rect width="72" height="96" rx="18" fill="#34D399" fill-opacity="0.18" stroke="#34D399" stroke-opacity="0.5"/>
+    <text x="18" y="38" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Ship</text>
+    <text x="18" y="66" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="12">or refund</text>
+  </g>
+</svg>
