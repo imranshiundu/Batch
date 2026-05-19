@@ -8,7 +8,20 @@
 
 @layer base {
   * {
-    @apply border-line; /* Fallback line color if needed, but Tailwind handles most borders */
+    @apply border-line;
+  }
+
+  body {
+    @apply bg-canvas text-ink-primary antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -18,4 +31,32 @@ html {
 
 ::selection {
   @apply bg-semantic-escrow/20;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(28, 100, 242, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(28, 100, 242, 0);
+  }
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }

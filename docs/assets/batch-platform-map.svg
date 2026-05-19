@@ -1,0 +1,50 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="32" fill="#F8FAFC"/>
+  <text x="72" y="78" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="800">Batch platform map</text>
+  <text x="72" y="116" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="18">One backend, multiple serious surfaces, one source of truth.</text>
+
+  <g transform="translate(72 170)">
+    <rect width="250" height="150" rx="24" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="28" y="44" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Buyer app</text>
+    <text x="28" y="78" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Live batches</text>
+    <text x="28" y="104" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Escrow commitments</text>
+    <text x="28" y="130" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Delivery and refunds</text>
+  </g>
+
+  <g transform="translate(72 400)">
+    <rect width="250" height="150" rx="24" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="28" y="44" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Supplier app</text>
+    <text x="28" y="78" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Create batches</text>
+    <text x="28" y="104" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Upload proof</text>
+    <text x="28" y="130" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Milestone payouts</text>
+  </g>
+
+  <g transform="translate(515 260)">
+    <rect width="250" height="190" rx="28" fill="#0F172A"/>
+    <text x="36" y="58" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">Batch API</text>
+    <text x="36" y="94" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="15">State machine</text>
+    <text x="36" y="120" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="15">Escrow ledger</text>
+    <text x="36" y="146" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="15">Payments + delivery</text>
+  </g>
+
+  <g transform="translate(958 170)">
+    <rect width="250" height="150" rx="24" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="28" y="44" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Operator app</text>
+    <text x="28" y="78" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Ledger control</text>
+    <text x="28" y="104" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Dispute center</text>
+    <text x="28" y="130" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Audit logs</text>
+  </g>
+
+  <g transform="translate(958 400)">
+    <rect width="250" height="150" rx="24" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="28" y="44" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Developer API</text>
+    <text x="28" y="78" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Scoped keys</text>
+    <text x="28" y="104" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">Bot-safe routes</text>
+    <text x="28" y="130" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15">No rule bypass</text>
+  </g>
+
+  <path d="M332 245C405 245 430 320 505 340" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M332 475C405 475 430 400 505 370" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M775 340C850 320 875 245 948 245" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M775 370C850 400 875 475 948 475" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+</svg>
